@@ -48,7 +48,7 @@ const freeMem = (ptrLen, sync) => {
  * @param {string|Uint8Array} input markdown input
  * @returns {string} html output
  */
-export function toHtml(input) {
+export function mdToHtml(input) {
   const ptrLen = wasm.mdToHtml(
     allocMem(typeof input === "string" ? enc.encode(input) : input),
   );
@@ -60,7 +60,7 @@ export function toHtml(input) {
 /** Initializes md4c wasm module. */
 export async function init() {
   // 1. read the wasm module as bytes
-  const wasmURL = new URL("zig-out/lib/md4c.wasm", import.meta.url);
+  const wasmURL = new URL("md4c.wasm", import.meta.url);
   const wasBytes = await fs.readFile(wasmURL);
 
   // 2. instantiate the wasm module
@@ -91,5 +91,5 @@ if (!fs.readFile) {
 // test
 if (import.meta.main) {
   await init();
-  console.log(toHtml(await fs.readFile("README.md")));
+  console.log(mdToHtml(await fs.readFile("README.md")));
 }
