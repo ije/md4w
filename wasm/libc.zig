@@ -2,46 +2,40 @@ const std = @import("std");
 
 const allocator = std.heap.wasm_allocator;
 
-/// Since this is often 16 for the new operator in C++, malloc should also mimic that.
-const DefaultMallocAlignment = 16;
-const PointerSize = @sizeOf(*anyopaque);
-const BlocksPerAlignment = DefaultMallocAlignment / PointerSize;
+const usize_len = @sizeOf(usize);
 
 export fn malloc(size: usize) callconv(.C) *anyopaque {
-    // Allocates blocks of PointerSize sized items that fits the header and the user memory using the default alignment.
-    const blocks = (1 + (size + DefaultMallocAlignment - 1) / DefaultMallocAlignment) * BlocksPerAlignment;
-    const buf = allocator.alignedAlloc(usize, DefaultMallocAlignment, blocks) catch @panic("malloc: out of memory");
+    // Allocates a block that is a multiple of usize that fits the header and the user allocation.
+    const eff_size = 1 + (size + usize_len - 1) / usize_len;
+    const block = allocator.alloc(usize, eff_size) catch unreachable;
     // Header stores the length.
-    buf[0] = blocks;
-    // Return the user pointer.
-    return &buf[BlocksPerAlignment];
+    block[0] = eff_size;
+    // Return the user allocation.
+    return &block[1];
 }
 
 export fn realloc(ptr: ?*anyopaque, size: usize) callconv(.C) *anyopaque {
     if (ptr == null) {
         return malloc(size);
     }
-
-    // Get current block size and slice.
-    const addr = @intFromPtr(ptr.?) - DefaultMallocAlignment;
+    const eff_size = 1 + (size + usize_len - 1) / usize_len;
+    const addr = @intFromPtr(ptr.?) - usize_len;
     const block = @as([*]usize, @ptrFromInt(addr));
     const len = block[0];
     const slice: []usize = block[0..len];
-
-    // Reallocate.
-    const blocks = (1 + (size + DefaultMallocAlignment - 1) / DefaultMallocAlignment) * BlocksPerAlignment;
-    const new_slice = allocator.reallocAdvanced(slice, DefaultMallocAlignment, blocks) catch @panic("realloc: out of memory");
-    new_slice[0] = blocks;
-    return @as(*anyopaque, @ptrCast(&new_slice[BlocksPerAlignment]));
+    const new_slice = allocator.realloc(slice, eff_size) catch unreachable;
+    new_slice[0] = eff_size;
+    return @as(*anyopaque, @ptrCast(&new_slice[1]));
 }
 
 export fn free(ptr: ?*anyopaque) callconv(.C) void {
-    if (ptr != null) {
-        const addr = @intFromPtr(ptr) - DefaultMallocAlignment;
-        const block = @as([*]const usize, @ptrFromInt(addr));
-        const len = block[0];
-        allocator.free(block[0..len]);
+    if (ptr == null) {
+        return;
     }
+    const addr = @intFromPtr(ptr) - usize_len;
+    const block = @as([*]const usize, @ptrFromInt(addr));
+    const len = block[0];
+    allocator.free(block[0..len]);
 }
 
 export fn strlen(s: [*c]const u8) usize {
@@ -77,21 +71,28 @@ export fn strchr(s: [*:0]const u8, ch: u8) callconv(.C) ?[*:0]const u8 {
 
 const BinarySearchCompare = ?*const fn (?*const anyopaque, ?*const anyopaque) callconv(.C) c_int;
 
-export fn bsearch(key: ?*const anyopaque, base: ?*const anyopaque, nmemb: usize, size: usize, compar: BinarySearchCompare) callconv(.C) ?*anyopaque {
-    var l: usize = undefined;
-    var u: usize = undefined;
-    var idx: usize = undefined;
-    var p: ?*const anyopaque = undefined;
-    var comparison: c_int = undefined;
-    l = @as(usize, @bitCast(@as(c_long, @as(c_int, 0))));
-    u = nmemb;
-    while (l < u) {
-        idx = ((l +% u) / @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 2)))));
-        p = @as(?*anyopaque, @ptrFromInt(@intFromPtr(((@as([*c]const u8, @ptrCast(@alignCast(base)))) + (idx *% size)))));
-        comparison = (compar).?(key, p);
-        if (comparison < @as(c_int, 0)) u = idx else if (comparison > @as(c_int, 0)) l = (idx +% @as(c_ulong, @bitCast(@as(c_long, @as(c_int, 1))))) else return @as(?*anyopaque, @ptrFromInt(@intFromPtr(p)));
+export fn bsearch(
+    key: [*c]const u8,
+    base: [*c]const u8,
+    nmemb: usize,
+    size: usize,
+    compar: *const fn ([*]const u8, [*]const u8) i2,
+) ?[*]const u8 {
+    var next_base = base;
+    var nel = nmemb;
+    while (nel > 0) {
+        const t = @as([*]const u8, @ptrCast(next_base)) + size * (nel / 2);
+        const s = compar(@as([*]const u8, @ptrCast(key)), t);
+        if (s < 0) {
+            nel /= 2;
+        } else if (s > 0) {
+            next_base = t + size;
+            nel -= nel / 2 + 1;
+        } else {
+            return t;
+        }
     }
-    return (@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))));
+    return null;
 }
 
 const QuicksortCompare = fn (left: *u8, right: *u8) callconv(.C) c_int;
