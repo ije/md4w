@@ -91,5 +91,7 @@ if (!fs.readFile) {
 // test
 if (import.meta.main) {
   await init();
-  console.log(mdToHtml(await fs.readFile("README.md")));
+  const md = await fs.readFile("README.md");
+  const html = mdToHtml(md);
+  console.log(html, enc.encode(html).length / md.length);
 }

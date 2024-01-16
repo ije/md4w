@@ -11,6 +11,9 @@ const allocator = std.heap.wasm_allocator;
 const Writer = struct {
     buf: []u8 = undefined,
     len: usize = 0,
+    pub fn init(cap: usize) Writer {
+        return Writer{ .buf = allocator.alloc(u8, cap) catch unreachable };
+    }
     pub fn write(self: *Writer, chunk: []const u8) !void {
         const new_len = self.len + chunk.len;
         if (new_len > self.buf.len) {
@@ -46,8 +49,8 @@ export fn freeMem(ptrLen: u64) void {
 }
 
 export fn mdToHtml(ptrLen: u64) u64 {
-    const code = fromJS(ptrLen);
-    defer allocator.free(code);
+    const md = fromJS(ptrLen);
+    defer allocator.free(md);
 
     const renderer = struct {
         fn render(
@@ -55,16 +58,17 @@ export fn mdToHtml(ptrLen: u64) u64 {
             len: c.MD_SIZE,
             userdata: ?*anyopaque,
         ) callconv(.C) void {
-            const w: *Writer = @ptrCast(@alignCast(userdata));
             const str = @as([*]const u8, @ptrCast(ptr))[0..len];
+            const w: *Writer = @ptrCast(@alignCast(userdata));
             w.write(str) catch {};
         }
     };
 
-    var writer = Writer{};
+    // the 13/10 is a heuristic for the average length of the html output
+    var writer = Writer.init(md.len * 13 / 10);
     _ = c.md_html(
-        code.ptr,
-        @intCast(code.len),
+        md.ptr,
+        @intCast(md.len),
         renderer.render,
         @ptrFromInt(@intFromPtr(&writer)),
         0,
