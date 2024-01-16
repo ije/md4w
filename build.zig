@@ -15,4 +15,12 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.rdynamic = true;
     b.installArtifact(lib);
+
+    const opt = b.addSystemCommand(&.{ "wasm-opt", "-Oz", "-o" });
+    const out_file = opt.addOutputFileArg("md4c-opt.wasm");
+    _ = opt.addFileArg(lib.getEmittedBin());
+    opt.step.dependOn(&lib.step);
+
+    const copy = b.addInstallFileWithDir(out_file, .prefix, "../md4c.wasm");
+    b.default_step.dependOn(&copy.step);
 }
