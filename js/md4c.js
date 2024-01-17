@@ -49,7 +49,14 @@ export function mdToHtml(input) {
  */
 export function initWasm(wasmModule) {
   if (wasmModule instanceof WebAssembly.Module) {
-    const instance = new WebAssembly.Instance(wasmModule);
+    const instance = new WebAssembly.Instance(wasmModule, {
+      console: {
+        log: (ptrLen) => {
+          const message = dec.decode(readMem(ptrLen));
+          console.log(message);
+        },
+      },
+    });
     wasm = instance.exports;
   } else {
     wasm = wasmModule;

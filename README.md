@@ -3,7 +3,7 @@
 This is a WebAssembly port of
 [md4c](https://github.com/mity/md4c) - a Markdown parser written in C.
 
-- **Fast**: written in C, compiled to WebAssembly
+- **Fast**: written in C, compiled to WebAssembly (it's about 2x faster than markdown-it, see [benchmark](#benchmark))
 - **Simple**: input markdown, output HTML
 - **Small**: `~50KB` gzipped
 - **Universal**: works in any JavaScript environment
@@ -28,5 +28,13 @@ have it installed. Also the [wasm-opt](https://github.com/WebAssembly/binaryen) 
 required to optimize the generated WebAssembly binary.
 
 ```bash
-zig build && deno run -A js/test.js
+zig build && deno test -A
+```
+
+## Benchmark
+
+![](./test/benchmark-screenshot.png)
+
+```bash
+deno bench -A test/benchmark.js
 ```
