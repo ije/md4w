@@ -98,7 +98,7 @@ export fn bsearch(
 const QuicksortCompare = fn (left: *u8, right: *u8) callconv(.C) c_int;
 
 export fn qsort(base: [*c]u8, nmemb: usize, size: usize, c_compare: *const QuicksortCompare) void {
-    const idxes = allocator.alloc(u32, nmemb) catch @panic("libc::qsort: out of memory");
+    const idxes = allocator.alloc(u32, nmemb) catch unreachable;
     defer allocator.free(idxes);
 
     const Context = struct {
@@ -123,7 +123,7 @@ export fn qsort(base: [*c]u8, nmemb: usize, size: usize, c_compare: *const Quick
     std.sort.heap(u32, idxes, ctx, S.lessThan);
 
     // Copy to temporary buffer.
-    const temp = allocator.alloc(u8, nmemb * size) catch @panic("libc::qsort: out of memory");
+    const temp = allocator.alloc(u8, nmemb * size) catch unreachable;
     defer allocator.free(temp);
     for (idxes, 0..) |idx, i| {
         std.mem.copy(u8, temp[i * size .. i * size + size], ctx.buf[idx * size .. idx * size + size]);

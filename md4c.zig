@@ -23,10 +23,6 @@ const Writer = struct {
         std.mem.copy(u8, self.buf[self.len..], chunk);
         self.len = new_len;
     }
-    pub fn finalize(self: *Writer) void {
-        // resize the buffer to the exact size of the html
-        _ = allocator.resize(self.buf, self.len);
-    }
 };
 
 fn fromJS(ptrLen: u64) []const u8 {
@@ -80,6 +76,5 @@ export fn mdToHtml(ptrLen: u64) u64 {
         0,
     );
 
-    writer.finalize();
-    return toJS(writer.buf);
+    return toJS(allocator.realloc(writer.buf, writer.len) catch unreachable);
 }
