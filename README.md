@@ -12,9 +12,9 @@ This is a WebAssembly port of
 ## Usage
 
 ```js
-// npm i md4w
+// npm i md4w (Node.js, Bun, Cloudflare Workers, etc.)
 import { init, mdToHtml } from "md4w";
-// or use the CDN
+// or use the CDN version (Deno, Modern Browsers)
 import { init, mdToHtml } from "https://esm.sh/md4w";
 
 await init();
