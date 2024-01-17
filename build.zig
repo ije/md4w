@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const lib = b.addSharedLibrary(.{
         .name = "md4c",
         .version = .{ .major = 0, .minor = 0, .patch = 1 },
-        .root_source_file = .{ .path = "wasm/md4c.zig" },
+        .root_source_file = .{ .path = "md4c.zig" },
         .target = .{ .cpu_arch = .wasm32, .os_tag = .freestanding },
         .optimize = .ReleaseSmall,
     });
@@ -21,6 +21,6 @@ pub fn build(b: *std.Build) void {
     _ = opt.addFileArg(lib.getEmittedBin());
     opt.step.dependOn(&lib.step);
 
-    const copy = b.addInstallFileWithDir(out_file, .prefix, "../md4c.wasm");
+    const copy = b.addInstallFileWithDir(out_file, .prefix, "../js/md4c.wasm");
     b.default_step.dependOn(&copy.step);
 }

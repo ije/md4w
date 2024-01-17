@@ -1,6 +1,5 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
-const fs = globalThis.Deno || {};
 
 let wasm;
 
@@ -57,41 +56,16 @@ export function mdToHtml(input) {
   return html;
 }
 
-/** Initializes md4c wasm module. */
-export async function init() {
-  // 1. read the wasm module as bytes
-  const wasmURL = new URL("md4c.wasm", import.meta.url);
-  const wasBytes = await fs.readFile(wasmURL);
-
-  // 2. instantiate the wasm module
-  const wasmModule = await WebAssembly.compile(wasBytes);
-  const instance = new WebAssembly.Instance(wasmModule);
-
-  // 3. save the wasm module for later use
-  wasm = instance.exports;
-}
-
-// universal FS
-if (!fs.readFile) {
-  if (globalThis.Bun) {
-    // bun
-    fs.readFile = async (path) =>
-      new Uint8Array(await Bun.file(path).arrayBuffer());
-  } else if (globalThis.process) {
-    // nodejs
-    const { readFile } = await import("node:fs/promises");
-    fs.readFile = readFile;
+/**
+ * Initializes md4c wasm module synchronously.
+ * @param {WebAssembly.Module} wasmModule
+ * @returns {void}
+ */
+export function initWasm(wasmModule) {
+  if (wasmModule instanceof WebAssembly.Module) {
+    const instance = new WebAssembly.Instance(wasmModule);
+    wasm = instance.exports;
   } else {
-    // browser
-    fs.readFile = async (path) =>
-      new Uint8Array(await (await fetch(path)).arrayBuffer());
+    wasm = wasmModule;
   }
-}
-
-// test
-if (import.meta.main) {
-  await init();
-  const md = await fs.readFile("README.md");
-  const html = mdToHtml(md);
-  console.log(html, enc.encode(html).length / md.length);
 }
