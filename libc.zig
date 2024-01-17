@@ -1,7 +1,6 @@
 const std = @import("std");
 
 const allocator = std.heap.wasm_allocator;
-
 const usize_len = @sizeOf(usize);
 
 export fn malloc(size: usize) callconv(.C) *anyopaque {
@@ -139,9 +138,11 @@ export fn fprintf(stream: *anyopaque, format: [*c]const u8, ...) c_int {
     unreachable;
 }
 
-export fn snprintf(s: [*c]u8, maxlen: c_ulong, format: [*c]const u8, ...) c_int {
+export fn snprintf(s: [*c]u8, maxlen: usize, format: [*c]const u8, ...) c_int {
     _ = format;
-    _ = maxlen;
-    _ = s;
-    unreachable;
+    var ap = @cVaStart();
+    defer @cVaEnd(&ap);
+    var arg = @cVaArg(&ap, *c_uint);
+    _ = std.fmt.bufPrint(s[0..maxlen], "<ol start=\"{}\">\n", .{arg}) catch unreachable;
+    return 0;
 }
