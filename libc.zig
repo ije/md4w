@@ -142,7 +142,7 @@ export fn snprintf(s: [*c]u8, maxlen: usize, format: [*c]const u8, ...) c_int {
     _ = format;
     var ap = @cVaStart();
     defer @cVaEnd(&ap);
-    var arg = @cVaArg(&ap, *c_uint);
-    _ = std.fmt.bufPrint(s[0..maxlen], "<ol start=\"{}\">\n", .{arg}) catch unreachable;
+    var arg = @cVaArg(&ap, c_int);
+    _ = std.fmt.bufPrint(s[0..maxlen], "<ol start=\"{d}\">\n", .{@as(i32, arg)}) catch unreachable;
     return 0;
 }

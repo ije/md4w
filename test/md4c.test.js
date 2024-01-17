@@ -11,6 +11,6 @@ Deno.test("markdown to html", async () => {
   );
   const html = mdToHtml(md);
   assertStringIncludes(html, "<h1>Introduction");
-  assertStringIncludes(html, '<ol start="');
+  assertStringIncludes(html, '<ol start="2');
   assertStringIncludes(html, "<code>stack_bottom");
 });

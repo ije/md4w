@@ -13,13 +13,13 @@ const mdStr = new TextDecoder().decode(md);
 Deno.bench("md4c.wasm", () => {
   const html = mdToHtml(md);
   assertStringIncludes(html, "<h1>Introduction");
-  assertStringIncludes(html, '<ol start="');
+  assertStringIncludes(html, '<ol start="2');
   assertStringIncludes(html, "<code>stack_bottom");
 });
 
 Deno.bench("markdown-it", () => {
   const html = markdownit.render(mdStr);
   assertStringIncludes(html, "<h1>Introduction");
-  assertStringIncludes(html, '<ol start="');
+  assertStringIncludes(html, '<ol start="2');
   assertStringIncludes(html, "<code>stack_bottom");
 });
