@@ -44,7 +44,7 @@ const freeMem = (ptrLen, sync) => {
 
 /**
  * Converts markdown to html.
- * @param {string|Uint8Array} input markdown input
+ * @param {string | Uint8Array} input markdown input
  * @returns {string} html output
  */
 export function mdToHtml(input) {
@@ -58,7 +58,7 @@ export function mdToHtml(input) {
 
 /**
  * Initializes md4c wasm module synchronously.
- * @param {WebAssembly.Module} wasmModule
+ * @param {WebAssembly.Module | { mdToHtml: CallableFunction }} wasmModule
  * @returns {void}
  */
 export function initWasm(wasmModule) {

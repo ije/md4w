@@ -28,8 +28,8 @@ if (!fs.readFile) {
 /** Initializes md4c wasm module. */
 export async function init() {
   const wasmURL = new URL("md4c.wasm", import.meta.url);
-  const wasBytes = await fs.readFile(wasmURL);
-  initWasm(await WebAssembly.compile(wasBytes));
+  const wasmBytes = await fs.readFile(wasmURL);
+  initWasm(await WebAssembly.compile(wasmBytes));
 }
 
 export { mdToHtml };
