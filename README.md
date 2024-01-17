@@ -22,5 +22,5 @@ The wasm binding layer is written in [Zig](https://ziglang.org/), ensure you
 have it installed.
 
 ```bash
-zig build && deno run -A md4c.js
+zig build && deno run -A js/test.js
 ```
