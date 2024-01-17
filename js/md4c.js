@@ -29,20 +29,6 @@ const allocMem = (data) => {
 };
 
 /**
- * freeMem frees the memory allocated by Zig
- *
- * @param {bigint} ptrLen pointer(32-bit) and length(32-bit) encoded as a single 64-bit int (BigInt)
- * @param {boolean|undefined} sync if `true`, the memory will be freed synchronously
- */
-const freeMem = (ptrLen, sync) => {
-  if (!sync) {
-    queueMicrotask(() => wasm.freeMem(ptrLen));
-  } else {
-    wasm.free(ptrLen);
-  }
-};
-
-/**
  * Converts markdown to html.
  * @param {string | Uint8Array} input markdown input
  * @returns {string} html output
@@ -52,12 +38,12 @@ export function mdToHtml(input) {
     allocMem(typeof input === "string" ? enc.encode(input) : input),
   );
   const html = dec.decode(readMem(ptrLen));
-  freeMem(ptrLen);
+  queueMicrotask(() => wasm.freeMem(ptrLen));
   return html;
 }
 
 /**
- * Initializes md4c wasm module synchronously.
+ * Initializes md4c wasm module.
  * @param {WebAssembly.Module | { mdToHtml: CallableFunction }} wasmModule
  * @returns {void}
  */
