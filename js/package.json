@@ -7,8 +7,8 @@
   "main": "index.js",
   "exports": {
     ".": {
-      "workerd": "./unwasm.js",
       "unwasm": "./unwasm.js",
+      "workerd": "./unwasm.js",
       "import": "./index.js"
     }
   },
