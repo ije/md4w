@@ -17,11 +17,15 @@ const Writer = struct {
     pub fn write(self: *Writer, chunk: []const u8) !void {
         const new_len = self.len + chunk.len;
         if (new_len > self.buf.len) {
-            const new_cap = @max(new_len, self.buf.len * 2);
+            const new_cap = @max(new_len, self.buf.len + 128);
             self.buf = allocator.realloc(self.buf, new_cap) catch unreachable;
         }
         std.mem.copy(u8, self.buf[self.len..], chunk);
         self.len = new_len;
+    }
+    pub fn finalize(self: *Writer) void {
+        // resize the buffer to the exact size of the html
+        _ = allocator.resize(self.buf, self.len);
     }
 };
 
@@ -65,6 +69,7 @@ export fn mdToHtml(ptrLen: u64) u64 {
     };
 
     // the 13/10 is a heuristic for the average length of the html output
+    // (the data comes from my own repos, it's not exact, but it's close enough)
     var writer = Writer.init(md.len * 13 / 10);
     _ = c.md_html(
         md.ptr,
@@ -75,5 +80,6 @@ export fn mdToHtml(ptrLen: u64) u64 {
         0,
     );
 
-    return toJS(writer.buf[0..writer.len]);
+    writer.finalize();
+    return toJS(writer.buf);
 }
