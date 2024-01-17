@@ -1,7 +1,7 @@
 {
   "name": "md4w",
   "description": "A WebAssembly port of md4c - a Markdown parser written in C.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "type": "module",
   "module": "index.js",
   "main": "index.js",
