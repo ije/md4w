@@ -3,7 +3,7 @@ usingnamespace @import("libc.zig");
 
 const std = @import("std");
 const c = @cImport({
-    @cInclude("md4c-html.h");
+    @cInclude("md4c.h");
 });
 
 const allocator = std.heap.wasm_allocator;

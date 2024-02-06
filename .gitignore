@@ -1,4 +1,4 @@
-  .DS_Store
+.DS_Store
 zig-cache
 zig-out
 md4c.wasm

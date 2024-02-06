@@ -8,8 +8,6 @@ pub fn build(b: *std.Build) void {
         .target = .{ .cpu_arch = .wasm32, .os_tag = .freestanding },
         .optimize = .ReleaseSmall,
     });
-    lib.addCSourceFile(.{ .file = .{ .path = "md4c/src/entity.c" }, .flags = &.{} });
-    lib.addCSourceFile(.{ .file = .{ .path = "md4c/src/md4c-html.c" }, .flags = &.{} });
     lib.addCSourceFile(.{ .file = .{ .path = "md4c/src/md4c.c" }, .flags = &.{} });
     lib.addIncludePath(.{ .path = "md4c/src" });
     lib.linkLibC();
