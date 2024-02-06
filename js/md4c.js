@@ -1,5 +1,6 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+const pageSize = 64 * 1024;
 
 let wasm;
 let pull;
@@ -32,15 +33,16 @@ const allocMem = (data) => {
 /**
  * Converts markdown to html.
  * @param {string | Uint8Array} input markdown input
+ * @options {object} options
  * @returns {string} html output
  */
-export function mdToHtml(input) {
+export function mdToHtml(input, options = {}) {
   const chunks = [];
   pull = (chunk) => chunks.push(chunk);
   wasm.mdToHtml(
     allocMem(typeof input === "string" ? enc.encode(input) : input),
-    0,
-    16 * 1024,
+    options.flags || 0,
+    Math.max(pageSize, Number(options.bufferSize) || pageSize),
   );
   pull = null;
   const buf = new Uint8Array(
@@ -57,16 +59,17 @@ export function mdToHtml(input) {
 /**
  * Converts markdown to html as a readable stream.
  * @param {string | Uint8Array} input markdown input
+ * @options {object} options
  * @returns {ReadableStream<Uint8Array>} html stream
  */
-export function mdToReadableHtml(input) {
+export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
       pull = (chunk) => controller.enqueue(chunk);
       wasm.mdToHtml(
         allocMem(typeof input === "string" ? enc.encode(input) : input),
-        0,
-        16 * 1024,
+        options.flags || 0,
+        Math.max(pageSize, Number(options.bufferSize) || pageSize),
       );
       pull = null;
       controller.close();
