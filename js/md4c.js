@@ -2,6 +2,7 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 let wasm;
+let pull;
 
 /**
  * readMem returns a Uint8Array view of the wasm memory.
@@ -34,12 +35,43 @@ const allocMem = (data) => {
  * @returns {string} html output
  */
 export function mdToHtml(input) {
-  const ptrLen = wasm.mdToHtml(
+  const chunks = [];
+  pull = (chunk) => chunks.push(chunk);
+  wasm.mdToHtml(
     allocMem(typeof input === "string" ? enc.encode(input) : input),
+    0,
+    16 * 1024,
   );
-  const html = dec.decode(readMem(ptrLen));
-  queueMicrotask(() => wasm.freeMem(ptrLen));
-  return html;
+  pull = null;
+  const buf = new Uint8Array(
+    chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+  );
+  let offset = 0;
+  for (const chunk of chunks) {
+    buf.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return dec.decode(buf);
+}
+
+/**
+ * Converts markdown to html as a readable stream.
+ * @param {string | Uint8Array} input markdown input
+ * @returns {ReadableStream<Uint8Array>} html stream
+ */
+export function mdToReadableHtml(input) {
+  return new ReadableStream({
+    start(controller) {
+      pull = (chunk) => controller.enqueue(chunk);
+      wasm.mdToHtml(
+        allocMem(typeof input === "string" ? enc.encode(input) : input),
+        0,
+        16 * 1024,
+      );
+      pull = null;
+      controller.close();
+    },
+  });
 }
 
 /**
@@ -50,10 +82,9 @@ export function mdToHtml(input) {
 export function initWasm(wasmModule) {
   if (wasmModule instanceof WebAssembly.Module) {
     const instance = new WebAssembly.Instance(wasmModule, {
-      console: {
-        log: (ptrLen) => {
-          const message = dec.decode(readMem(ptrLen));
-          console.log(message);
+      env: {
+        push: (ptrLen) => {
+          pull(readMem(ptrLen));
         },
       },
     });

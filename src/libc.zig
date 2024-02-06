@@ -37,38 +37,11 @@ export fn free(ptr: ?*anyopaque) callconv(.C) void {
     allocator.free(block[0..len]);
 }
 
-export fn strlen(s: [*c]const u8) usize {
-    return std.mem.sliceTo(s, 0).len;
-}
-
-export fn strcmp(s1: [*c]const u8, s2: [*c]const u8) c_int {
-    return switch (std.mem.orderZ(u8, s1, s2)) {
-        .lt => -1,
-        .eq => 0,
-        .gt => 1,
-    };
-}
-
-export fn strncmp(_l: [*:0]const u8, _r: [*:0]const u8, _n: usize) callconv(.C) c_int {
-    if (_n == 0) return 0;
-    var l = _l;
-    var r = _r;
-    var n = _n - 1;
-    while (l[0] != 0 and r[0] != 0 and n != 0 and l[0] == r[0]) {
-        l += 1;
-        r += 1;
-        n -= 1;
-    }
-    return @as(c_int, l[0]) - @as(c_int, r[0]);
-}
-
 export fn strchr(s: [*:0]const u8, ch: u8) callconv(.C) ?[*:0]const u8 {
     if (std.mem.indexOfScalar(u8, std.mem.sliceTo(s, 0), ch)) |idx| {
         return @as([*:0]const u8, @ptrCast(&s[idx]));
     } else return null;
 }
-
-const BinarySearchCompare = ?*const fn (?*const anyopaque, ?*const anyopaque) callconv(.C) c_int;
 
 export fn bsearch(
     key: [*c]const u8,
@@ -128,21 +101,4 @@ export fn qsort(base: [*c]u8, nmemb: usize, size: usize, c_compare: *const Quick
         std.mem.copy(u8, temp[i * size .. i * size + size], ctx.buf[idx * size .. idx * size + size]);
     }
     std.mem.copy(u8, ctx.buf, temp);
-}
-
-export const stderr: ?*anyopaque = null;
-
-export fn fprintf(stream: *anyopaque, format: [*c]const u8, ...) c_int {
-    _ = format;
-    _ = stream;
-    unreachable;
-}
-
-export fn snprintf(s: [*c]u8, maxlen: usize, format: [*c]const u8, ...) c_int {
-    _ = format;
-    var ap = @cVaStart();
-    defer @cVaEnd(&ap);
-    var arg = @cVaArg(&ap, c_int);
-    _ = std.fmt.bufPrint(s[0..maxlen], "<ol start=\"{d}\">\n", .{@as(i32, arg)}) catch unreachable;
-    return 0;
 }

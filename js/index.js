@@ -1,4 +1,4 @@
-import { initWasm, mdToHtml } from "./md4c.js";
+import { initWasm, mdToHtml, mdToReadableHtml } from "./md4c.js";
 
 // universal FS
 const fs = globalThis.Deno || {};
@@ -9,14 +9,15 @@ if (!fs.readFile) {
       new Uint8Array(await Bun.file(path).arrayBuffer());
   } else if (globalThis.process) {
     // nodejs
-    const { readFile } = await import("node:fs/promises");
+    const m = "node:fs/promises";
+    const { readFile } = await import(m);
     fs.readFile = readFile;
   } else {
     // browser
     fs.readFile = async (path) => {
-      const cacheBase64 = localStorage.getItem(path);
-      if (cacheBase64) {
-        return Uint8Array.from(atob(cacheBase64), (c) => c.charCodeAt(0));
+      const cache = localStorage.getItem(path);
+      if (cache) {
+        return Uint8Array.from(atob(cache), (c) => c.charCodeAt(0));
       }
       const bytes = new Uint8Array(await (await fetch(path)).arrayBuffer());
       localStorage.setItem(path, btoa(String.fromCodePoint(...bytes)));
@@ -32,4 +33,4 @@ export async function init() {
   initWasm(await WebAssembly.compile(wasmBytes));
 }
 
-export { mdToHtml };
+export { mdToHtml, mdToReadableHtml };
