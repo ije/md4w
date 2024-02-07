@@ -123,7 +123,7 @@ setCodeHighlighter((code, lang) => {
 ## Streaming API
 
 md4w supports streaming API for large markdown files, this also is useful for a
-http servert to stream the response.
+http server to stream the response.
 
 ```js
 import { mdToReadableHtml } from "md4w";
@@ -144,7 +144,10 @@ const response = new Response(readable, {
 ### Buffer Size
 
 By default, md4w uses a buffer size of `1KB` for streaming, you can change it by
-adding the `bufferSize` option:
+adding the `bufferSize` option. The value is more higher, the JS calls in wasm
+module will be less, it will be more faster, but the memory usage will be more
+higher. You better to choose a suitable value for your case. For IO event like
+http server, maybe lower value is better.
 
 ```js
 mdToReadableHtml(largeMarkdown, {
