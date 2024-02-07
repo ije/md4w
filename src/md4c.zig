@@ -5,7 +5,8 @@ const c = @cImport({
 
 const allocator = std.heap.wasm_allocator;
 
-// copied from https://github.com/rsms/markdown-wasm/blob/0d99d1151ff4d929a8ac8f3a191bfec54a10a869/src/fmt_html.c#L120C1-L138C3
+/// slugCharMap is a map of ASCII characters to their corresponding slug character.
+/// copied from https://github.com/rsms/markdown-wasm/blob/0d99d1151ff4d929a8ac8f3a191bfec54a10a869/src/fmt_html.c#L120C1-L138C3
 const slugCharMap = [256]u8{
     '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', // <CTRL> ...
     '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', // <CTRL> ...
@@ -25,6 +26,7 @@ const slugCharMap = [256]u8{
     'd', 'n', 'o', 'o', 'o', 'o', 'o', '-', 'o', 'u', 'u', 'u', 'u', 'y', '-', 'y', // ð ñ ò ó ô õ ö ÷ ø ù ú û ü ý þ ÿ
 };
 
+/// The writer handles the output of the md4c parser
 const Writer = struct {
     buf: []u8 = undefined,
     len: usize = 0,
@@ -123,8 +125,9 @@ const Writer = struct {
     }
 };
 
+/// The parser cotains the callbacks for the md4c parser
 const Parser = struct {
-    pub fn enter_block(
+    pub fn enterBlock(
         typ: c.MD_BLOCKTYPE,
         detail: ?*anyopaque,
         userdata: ?*anyopaque,
@@ -212,7 +215,7 @@ const Parser = struct {
         return 0;
     }
 
-    pub fn leave_block(
+    pub fn leaveBlock(
         typ: c.MD_BLOCKTYPE,
         detail: ?*anyopaque,
         userdata: ?*anyopaque,
@@ -260,7 +263,7 @@ const Parser = struct {
         return 0;
     }
 
-    pub fn enter_span(
+    pub fn enterSpan(
         typ: c.MD_SPANTYPE,
         detail: ?*anyopaque,
         userdata: ?*anyopaque,
@@ -309,7 +312,7 @@ const Parser = struct {
         return 0;
     }
 
-    pub fn leave_span(
+    pub fn leaveSpan(
         typ: c.MD_SPANTYPE,
         detail: ?*anyopaque,
         userdata: ?*anyopaque,
@@ -371,7 +374,7 @@ const Parser = struct {
         }
 
         switch (typ) {
-            c.MD_TEXT_NULLCHAR => w.write(&[1]u8{0}),
+            c.MD_TEXT_NULLCHAR => w.writeByte(0),
             c.MD_TEXT_BR => w.write(if (w.image_nesting_level == 0) "<br>\n" else " "),
             c.MD_TEXT_SOFTBR => w.writeByte(if (w.image_nesting_level == 0) '\n' else ' '),
             // currently we don't translate entity to its UTF-8 equivalent
@@ -399,6 +402,7 @@ const Parser = struct {
     }
 };
 
+/// allow the host to allocate memory
 export fn allocMem(length: u32) u64 {
     return @as(u64, @bitCast([2]u32{
         @intFromPtr((allocator.alloc(u8, length) catch unreachable).ptr),
@@ -406,10 +410,12 @@ export fn allocMem(length: u32) u64 {
     }));
 }
 
+/// allow the host to free memory
 export fn freeMem(ptr_len: u64) void {
     allocator.free(fromJS(ptr_len));
 }
 
+/// the main function to convert markdown to html
 export fn mdToHtml(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize) usize {
     const md = fromJS(ptr_len);
     defer allocator.free(md);
@@ -417,10 +423,10 @@ export fn mdToHtml(ptr_len: u64, flags: usize, buffer_size: usize, has_code_high
     const parser = c.MD_PARSER{
         .abi_version = 0,
         .flags = flags,
-        .enter_block = Parser.enter_block,
-        .leave_block = Parser.leave_block,
-        .enter_span = Parser.enter_span,
-        .leave_span = Parser.leave_span,
+        .enter_block = Parser.enterBlock,
+        .leave_block = Parser.leaveBlock,
+        .enter_span = Parser.enterSpan,
+        .leave_span = Parser.leaveSpan,
         .text = Parser.text,
         .debug_log = null,
         .syntax = null,
@@ -442,11 +448,13 @@ export fn mdToHtml(ptr_len: u64, flags: usize, buffer_size: usize, has_code_high
     return 0;
 }
 
+/// get a slice from the pointer and length
 fn fromJS(ptr_len: u64) []const u8 {
     const s = @as([2]u32, @bitCast(ptr_len));
     return @as([*]u8, @ptrFromInt(s[0]))[0..s[1]];
 }
 
+/// convert a slice to its pointer and length
 fn toJS(data: []const u8) u64 {
     return @as(u64, @bitCast([2]u32{
         @as(u32, @intFromPtr(data.ptr)),
@@ -457,6 +465,6 @@ fn toJS(data: []const u8) u64 {
 // add libc compatibility layer for wasm target
 usingnamespace @import("libc.zig");
 
-// push the buffer to the host
+// env functions
 pub extern fn push(ptr_len: u64) void;
 pub extern fn pushCodeBlock(language_ptr_len: u64, code_ptr_len: u64) void;
