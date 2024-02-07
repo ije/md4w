@@ -26,7 +26,7 @@ export const ParseFlags = {
    /** Support GitHub-style tables. */
    TABLES: 0x0100,
    /** Support strike-through spans (text enclosed in tilde marks, e.g. ~foo bar~). */
-   STRIKE_THROUGH: 0x0200,
+   STRIKETHROUGH: 0x0200,
    /** Support WWW autolinks (without proto; just 'www.') */
    PERMISSIVE_WWW_AUTO_LINKS: 0x0400,
    /** Support GitHub-style task lists. */

@@ -3,39 +3,39 @@
  */
 export enum ParseFlags {
   /** Collapse non-trivial whitespace into single space. */
-  COLLAPSE_WHITESPACE = 0x0001,
+  COLLAPSE_WHITESPACE,
   /** Do not require space in ATX headers ( ###header ) */
-  PERMISSIVE_ATX_HEADERS = 0x0002,
+  PERMISSIVE_ATX_HEADERS,
   /** Recognize URLs as links. */
-  PERMISSIVE_URL_AUTO_LINKS = 0x0004,
+  PERMISSIVE_URL_AUTO_LINKS,
   /** Recognize e-mails as links.*/
-  PERMISSIVE_EMAIL_AUTO_LINKS = 0x0008,
+  PERMISSIVE_EMAIL_AUTO_LINKS,
   /** Disable indented code blocks. (Only fenced code works.) */
-  NO_INDENTED_CODE_BLOCKS = 0x0010,
+  NO_INDENTED_CODE_BLOCKS,
   /** Disable raw HTML blocks. */
-  NO_HTML_BLOCKS = 0x0020,
+  NO_HTML_BLOCKS,
   /** Disable raw HTML (inline). */
-  NO_HTML_SPANS = 0x0040,
+  NO_HTML_SPANS,
   /** Support GitHub-style tables. */
-  TABLES = 0x0100,
+  TABLES,
   /** Support strike-through spans (text enclosed in tilde marks, e.g. ~foo bar~). */
-  STRIKE_THROUGH = 0x0200,
+  STRIKETHROUGH,
   /** Support WWW autolinks (without proto; just 'www.') */
-  PERMISSIVE_WWW_AUTO_LINKS = 0x0400,
+  PERMISSIVE_WWW_AUTO_LINKS,
   /** Support GitHub-style task lists. */
-  TASKLISTS = 0x0800,
+  TASKLISTS,
   /** Support LaTeX math spans ($...$) and LaTeX display math spans ($$...$$) are supported. (Note though that the HTML renderer outputs them verbatim in a custom tag <x-equation>.) */
-  LATEX_MATHS_PANS = 0x1000,
+  LATEX_MATHS_PANS,
   /** Support wiki-style links ([[link label]] and [[target article|link label]]) are supported. (Note that the HTML renderer outputs them in a custom tag <x-wikilink>.) */
-  WIKI_LINKS = 0x2000,
+  WIKI_LINKS,
   /** Denotes an underline instead of an ordinary emphasis or strong emphasis. */
-  UNDERLINE = 0x4000,
+  UNDERLINE,
   /** Using hard line breaks. */
-  HARD_SOFT_BREAKS = 0x8000,
+  HARD_SOFT_BREAKS,
   /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */
-  NO_HTML = 0x00200 | 0x0040,
+  NO_HTML,
   /** Default flags COLLAPSE_WHITESPACE | PERMISSIVE_ATX_HEADERS | PERMISSIVE_URL_AUTO_LINKS | STRIKETHROUGH | TABLES | TASK_LISTS */
-  DEFAULT = 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
+  DEFAULT,
 }
 
 /**
