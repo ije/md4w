@@ -465,6 +465,6 @@ fn toJS(data: []const u8) u64 {
 // add libc compatibility layer for wasm target
 usingnamespace @import("libc.zig");
 
-// env functions
+// js functions
 pub extern fn push(ptr_len: u64) void;
 pub extern fn pushCodeBlock(language_ptr_len: u64, code_ptr_len: u64) void;

@@ -25,7 +25,7 @@ export enum ParseFlags {
   /** Support GitHub-style task lists. */
   TASKLISTS,
   /** Support LaTeX math spans ($...$) and LaTeX display math spans ($$...$$) are supported. (Note though that the HTML renderer outputs them verbatim in a custom tag <x-equation>.) */
-  LATEX_MATHS_PANS,
+  LATEX_MATH_SPANS,
   /** Support wiki-style links ([[link label]] and [[target article|link label]]) are supported. (Note that the HTML renderer outputs them in a custom tag <x-wikilink>.) */
   WIKI_LINKS,
   /** Denotes an underline instead of an ordinary emphasis or strong emphasis. */
