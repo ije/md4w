@@ -1,5 +1,5 @@
 .DS_Store
 zig-cache
 zig-out
-md4c.wasm
-md4c.wasm.zip
+md4w.wasm
+md4w.wasm.zip

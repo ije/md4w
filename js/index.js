@@ -1,4 +1,4 @@
-import { initWasm } from "./md4c.js";
+import { initWasm } from "./md4w.js";
 
 // universal FS
 const fs = globalThis.Deno || {};
@@ -26,11 +26,11 @@ if (!fs.readFile) {
   }
 }
 
-/** Initializes md4c wasm module. */
+/** Initializes the wasm module. */
 export async function init() {
-  const wasmURL = new URL("md4c.wasm", import.meta.url);
+  const wasmURL = new URL("md4w.wasm", import.meta.url);
   const wasmBytes = await fs.readFile(wasmURL);
   initWasm(await WebAssembly.compile(wasmBytes));
 }
 
-export * from "./md4c.js";
+export * from "./md4w.js";

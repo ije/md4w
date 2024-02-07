@@ -104,7 +104,7 @@ export function setCodeHighlighter(highlight) {
 }
 
 /**
- * Initializes md4c wasm module.
+ * Initializes the wasm module.
  * @param {WebAssembly.Module | { mdToHtml: CallableFunction }} wasmModule
  * @returns {void}
  */
