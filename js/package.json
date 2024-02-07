@@ -5,11 +5,13 @@
   "type": "module",
   "module": "index.js",
   "main": "index.js",
+  "types": "md4w.d.ts",
   "exports": {
     ".": {
       "unwasm": "./unwasm.js",
       "workerd": "./unwasm.js",
-      "import": "./index.js"
+      "import": "./index.js",
+      "types": "./md4w.d.ts"
     }
   },
   "license": "MIT"
