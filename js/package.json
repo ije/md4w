@@ -1,6 +1,6 @@
 {
   "name": "md4w",
-  "description": "A **Markdown-to-HTML** Parser written in Zig & C, compiled to WebAssymbly for all JavaScript runtimes.",
+  "description": "A Markdown parser written in Zig & C, compiled to WebAssymbly for all Javascript Runtimes.",
   "version": "0.1.0",
   "type": "module",
   "module": "index.js",
