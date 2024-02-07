@@ -5,7 +5,7 @@ This is a WebAssembly port of
 
 - **Fast**: written in C, compiled to WebAssembly (it's about 2x faster than markdown-it, see [benchmark](#benchmark))
 - **Simple**: input markdown, output HTML
-- **Small**: `~50KB` gzipped
+- **Small**: `~25KB` gzipped
 - **Universal**: works in any JavaScript environment
 - **Extensible**: supports custom extensions (WIP)
 
@@ -36,5 +36,5 @@ zig build && deno test -A
 ![](./test/benchmark-screenshot.png)
 
 ```bash
-deno bench -A test/benchmark.js
+zig build && deno bench -A test/benchmark.js
 ```

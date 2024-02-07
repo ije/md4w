@@ -1,4 +1,4 @@
-import { initWasm, mdToHtml, mdToReadableHtml } from "./md4c.js";
+import { initWasm } from "./md4c.js";
 
 // universal FS
 const fs = globalThis.Deno || {};
@@ -33,4 +33,4 @@ export async function init() {
   initWasm(await WebAssembly.compile(wasmBytes));
 }
 
-export { mdToHtml, mdToReadableHtml };
+export * from "./md4c.js";
