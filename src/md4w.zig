@@ -125,8 +125,8 @@ const Writer = struct {
     }
 };
 
-/// The parser cotains the callbacks for the md4c parser
-const Parser = struct {
+/// The renderer cotains the callbacks for the md4c parser
+const Renderer = struct {
     pub fn enterBlock(
         typ: c.MD_BLOCKTYPE,
         detail: ?*anyopaque,
@@ -423,11 +423,11 @@ export fn mdToHtml(ptr_len: u64, flags: usize, buffer_size: usize, has_code_high
     const parser = c.MD_PARSER{
         .abi_version = 0,
         .flags = flags,
-        .enter_block = Parser.enterBlock,
-        .leave_block = Parser.leaveBlock,
-        .enter_span = Parser.enterSpan,
-        .leave_span = Parser.leaveSpan,
-        .text = Parser.text,
+        .enter_block = Renderer.enterBlock,
+        .leave_block = Renderer.leaveBlock,
+        .enter_span = Renderer.enterSpan,
+        .leave_span = Renderer.leaveSpan,
+        .text = Renderer.text,
         .debug_log = null,
         .syntax = null,
     };
