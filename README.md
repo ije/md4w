@@ -1,16 +1,16 @@
 # md4w
 
-A **Markdown** parser written in Zig & C, compiled to WebAssymbly for all
+A **Markdown** renderer written in Zig & C, compiled to WebAssymbly for all
 Javascript Runtimes.
 
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
   compliant to CommonMark 0.31, and supports partial GFM like task lists,
   tables, etc.
-- **Fast**: written in Zig,compiled to WebAssembly (it's about 2.5x faster than
+- **Fast**: written in Zig & C, compiled to WebAssembly (it's about 2.5x faster than
   markdown-it, see [benchmark](#benchmark)).
 - **Small**: `~25KB` gzipped.
-- **Simple**: input markdown, output HTML.
-- **Streaming**: supports streaming API for large markdown files.
+- **Simple**: zero dependencies, easy to use.
+- **Streaming**: supports web streaming API for large markdown files.
 - **Universal**: works in any JavaScript runtime (Node.js, Deno, Bun, Browsers,
   Cloudflare Workers, etc.).
 
@@ -46,7 +46,7 @@ By default, md4w uses the following parse flags:
 - `TABLES`: Support GitHub-style tables.
 - `TASK_LISTS`: Support GitHub-style task lists.
 
-You can use the `parseFlags` option to change the parser behavior:
+You can use the `parseFlags` option to change the renderer behavior:
 
 ```ts
 mdToHtml("# Hello, World!", {
@@ -120,9 +120,9 @@ setCodeHighlighter((code, lang) => {
 - Although we don't send back the highlighted code to the wasm module, the
   performance is still impacted by the code highlighter.
 
-## Streaming API
+## Web Streaming API
 
-md4w supports streaming API for large markdown files, this also is useful for a
+md4w supports web streaming API for large markdown files, this also is useful for a
 http server to stream the response.
 
 ```js
@@ -135,7 +135,7 @@ const readable = mdToReadableHtml(largeMarkdown);
 const file = await Deno.open("/foo/bar.html", { write: true, create: true });
 readable.pipeTo(file.writable);
 
-// or send to client
+// or send to browser
 const response = new Response(readable, {
   headers: { "Content-Type": "text/html" },
 });
@@ -162,7 +162,7 @@ to load the whole markdown data into memory.
 
 ## Development
 
-The parser is written in [Zig](https://ziglang.org/), ensure you have it
+The renderer is written in [Zig](https://ziglang.org/), ensure you have it
 installed. Also the [wasm-opt](https://github.com/WebAssembly/binaryen) is
 required to optimize the generated WebAssembly binary.
 
