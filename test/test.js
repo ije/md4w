@@ -1,4 +1,5 @@
 import {
+  assertEquals,
   assertStringIncludes as assertIncludes,
 } from "https://deno.land/std@0.200.0/testing/asserts.ts";
 import { getHighlighter } from "https://esm.sh/shiki@1.0.0-rc.0/bundle/web";
@@ -11,7 +12,7 @@ import {
 
 await init();
 
-Deno.test("markdown to html", async (t) => {
+Deno.test("render to string", async (t) => {
   await t.step("commonmark-spec", async () => {
     const md = await Deno.readFile(
       new URL("commonmark-spec.md", import.meta.url),
@@ -55,26 +56,33 @@ Deno.test("markdown to html", async (t) => {
   // todo: add more tests
 });
 
-Deno.test("markdown to html stream", async () => {
-  const stream = mdToReadableHtml("# Hello, world!");
-  const html = await new Response(stream).text();
-  assertIncludes(html, "<h1>Hello, world!");
+Deno.test("render to web stream", async () => {
+  const specMd = await Deno.readFile(
+    new URL("commonmark-spec.md", import.meta.url),
+  );
+  const html = mdToHtml(specMd);
+  const stream = mdToReadableHtml(specMd);
+  assertEquals(html, await new Response(stream).text());
 });
 
-Deno.test("code hightlighter", async () => {
+Deno.test("using code hightlighter", async () => {
   const highlighter = await getHighlighter({
     themes: ["vitesse-dark"],
     langs: ["javascript"],
   });
 
+  // unknown language
   {
-    const html = mdToHtml("# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```");
+    const html = mdToHtml(
+      "# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```",
+    );
     assertIncludes(html, "<h1>Code block example");
     assertIncludes(html, "<pre><code>");
     assertIncludes(html, "&lt;plain-text&gt;Hey :)&lt;/plain-text&gt;");
     assertIncludes(html, "</code></pre>");
   }
 
+  // html
   {
     const html = mdToHtml(
       "# Code block example\n\n```html\n<h1>Hello, world!</h1>\n```",
@@ -85,6 +93,7 @@ Deno.test("code hightlighter", async () => {
     assertIncludes(html, "</code></pre>");
   }
 
+  // javascript
   {
     const html = mdToHtml(
       "# Code block example\n\n```javascript\nconst a = 1;\n```",
@@ -99,6 +108,7 @@ Deno.test("code hightlighter", async () => {
     return highlighter.codeToHtml(code, { lang, theme: "vitesse-dark" });
   });
 
+  // javascript with highlighter
   {
     const html = mdToHtml(
       "# Code block example\n\n```javascript\nconst a = 1;\n```",
@@ -109,8 +119,11 @@ Deno.test("code hightlighter", async () => {
     assertIncludes(html, "</code></pre>");
   }
 
+  // ignore highlighter for unknown language
   {
-    const html = mdToHtml("# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```");
+    const html = mdToHtml(
+      "# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```",
+    );
     assertIncludes(html, "<h1>Code block example");
     assertIncludes(html, "<pre><code>");
     assertIncludes(html, "&lt;plain-text&gt;Hey :)&lt;/plain-text&gt;");

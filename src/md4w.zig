@@ -30,11 +30,11 @@ const slugCharMap = [256]u8{
 const Writer = struct {
     buf: []u8 = undefined,
     len: usize = 0,
-    current_block: c.MD_BLOCKTYPE = c.MD_BLOCK_DOC,
     slug: []u8 = undefined,
     slug_len: usize = 0,
-    has_code_highlighter: bool = undefined,
+    current_block: c.MD_BLOCKTYPE = c.MD_BLOCK_DOC,
     image_nesting_level: usize = 0,
+    has_code_highlighter: bool = undefined,
     pub fn init(buffer_size: usize, has_code_highlighter: bool) Writer {
         return Writer{
             .buf = allocator.alloc(u8, buffer_size) catch unreachable,
@@ -415,8 +415,8 @@ export fn freeMem(ptr_len: u64) void {
     allocator.free(fromJS(ptr_len));
 }
 
-/// the main function to convert markdown to html
-export fn mdToHtml(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize) usize {
+/// the main function to render markdown to html
+export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize) usize {
     const md = fromJS(ptr_len);
     defer allocator.free(md);
 

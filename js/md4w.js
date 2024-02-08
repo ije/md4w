@@ -88,7 +88,7 @@ const allocMem = (data) => {
 export function mdToHtml(input, options = {}) {
   const chunks = [];
   pull = (chunk) => chunks.push(chunk);
-  wasm.mdToHtml(
+  wasm.render(
     allocMem(toUint8Array(input)),
     validateParseFlags(options.parseFlags),
     64 * 1024, // 64KB buffer size
@@ -122,7 +122,7 @@ export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
       pull = (chunk) => controller.enqueue(chunk);
-      wasm.mdToHtml(
+      wasm.render(
         allocMem(typeof input === "string" ? enc.encode(input) : input),
         validateParseFlags(options.parseFlags),
         Math.max(1024, Number(options.bufferSize) || 1024),
@@ -165,7 +165,7 @@ export function setCodeHighlighter(codeHighlighter) {
 
 /**
  * Initializes the wasm module.
- * @param {WebAssembly.Module | { mdToHtml: CallableFunction }} wasmModule
+ * @param {WebAssembly.Module | { render: CallableFunction }} wasmModule
  * @returns {void}
  */
 export function initWasm(wasmModule) {
