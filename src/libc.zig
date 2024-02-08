@@ -43,18 +43,20 @@ export fn strchr(s: [*:0]const u8, ch: u8) callconv(.C) ?[*:0]const u8 {
     } else return null;
 }
 
+const BsearchCompare = fn (left: [*]const u8, right: [*]const u8) callconv(.C) c_int;
+
 export fn bsearch(
     key: [*c]const u8,
     base: [*c]const u8,
     nmemb: usize,
     size: usize,
-    compar: *const fn ([*]const u8, [*]const u8) i2,
+    compare: *const BsearchCompare,
 ) ?[*]const u8 {
     var next_base = base;
     var nel = nmemb;
     while (nel > 0) {
         const t = @as([*]const u8, @ptrCast(next_base)) + size * (nel / 2);
-        const s = compar(@as([*]const u8, @ptrCast(key)), t);
+        const s = compare(@as([*]const u8, @ptrCast(key)), t);
         if (s < 0) {
             nel /= 2;
         } else if (s > 0) {
@@ -70,8 +72,8 @@ export fn bsearch(
 const QuicksortCompare = fn (left: *u8, right: *u8) callconv(.C) c_int;
 
 export fn qsort(base: [*c]u8, nmemb: usize, size: usize, c_compare: *const QuicksortCompare) void {
-    const idxes = allocator.alloc(u32, nmemb) catch unreachable;
-    defer allocator.free(idxes);
+    const indexs = allocator.alloc(u32, nmemb) catch unreachable;
+    defer allocator.free(indexs);
 
     const Context = struct {
         buf: []u8,
@@ -89,15 +91,15 @@ export fn qsort(base: [*c]u8, nmemb: usize, size: usize, c_compare: *const Quick
         .c_compare = c_compare,
         .buf = base[0 .. nmemb * size],
     };
-    for (idxes, 0..) |_, i| {
-        idxes[i] = i;
+    for (indexs, 0..) |_, i| {
+        indexs[i] = i;
     }
-    std.sort.heap(u32, idxes, ctx, S.lessThan);
+    std.sort.heap(u32, indexs, ctx, S.lessThan);
 
     // Copy to temporary buffer.
     const temp = allocator.alloc(u8, nmemb * size) catch unreachable;
     defer allocator.free(temp);
-    for (idxes, 0..) |idx, i| {
+    for (indexs, 0..) |idx, i| {
         std.mem.copy(u8, temp[i * size .. i * size + size], ctx.buf[idx * size .. idx * size + size]);
     }
     std.mem.copy(u8, ctx.buf, temp);
