@@ -74,7 +74,7 @@ export function mdToReadableHtml(
  * Code highlighter interface.
  */
 export interface CodeHighlighter {
-  (language: string, code: string): string | Uint8Array;
+  (language: string, code: string): string;
 }
 
 /**

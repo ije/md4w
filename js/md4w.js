@@ -9,50 +9,41 @@ let highlighter;
  * ParseFlags is a set of flags for md4c parser.
  */
 export const ParseFlags = {
-   /** Collapse non-trivial whitespace into single space. */
-   COLLAPSE_WHITESPACE: 0x0001,
-   /** Do not require space in ATX headers ( ###header ) */
-   PERMISSIVE_ATX_HEADERS: 0x0002,
-   /** Recognize URLs as links. */
-   PERMISSIVE_URL_AUTO_LINKS: 0x0004,
-   /** Recognize e-mails as links.*/
-   PERMISSIVE_EMAIL_AUTO_LINKS: 0x0008,
-   /** Disable indented code blocks. (Only fenced code works.) */
-   NO_INDENTED_CODE_BLOCKS: 0x0010,
-   /** Disable raw HTML blocks. */
-   NO_HTML_BLOCKS: 0x0020,
-   /** Disable raw HTML (inline). */
-   NO_HTML_SPANS: 0x0040,
-   /** Support GitHub-style tables. */
-   TABLES: 0x0100,
-   /** Support strike-through spans (text enclosed in tilde marks, e.g. ~foo bar~). */
-   STRIKETHROUGH: 0x0200,
-   /** Support WWW autolinks (without proto; just 'www.') */
-   PERMISSIVE_WWW_AUTO_LINKS: 0x0400,
-   /** Support GitHub-style task lists. */
-   TASKLISTS: 0x0800,
-   /** Support LaTeX math spans ($...$) and LaTeX display math spans ($$...$$) are supported. (Note though that the HTML renderer outputs them verbatim in a custom tag <x-equation>.) */
-   LATEX_MATH_SPANS: 0x1000,
-   /** Support wiki-style links ([[link label]] and [[target article|link label]]) are supported. (Note that the HTML renderer outputs them in a custom tag <x-wikilink>.) */
-   WIKI_LINKS: 0x2000,
-   /** Denotes an underline instead of an ordinary emphasis or strong emphasis. */
-   UNDERLINE: 0x4000,
-   /** Using hard line breaks. */
-   HARD_SOFT_BREAKS: 0x8000,
-   /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */
-   NO_HTML: 0x00200 | 0x0040,
-   /** Default flags: COLLAPSE_WHITESPACE | PERMISSIVE_ATX_HEADERS | PERMISSIVE_URL_AUTO_LINKS | STRIKETHROUGH | TABLES | TASK_LISTS */
-   DEFAULT: 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
+  /** Collapse non-trivial whitespace into single space. */
+  COLLAPSE_WHITESPACE: 0x0001,
+  /** Do not require space in ATX headers ( ###header ) */
+  PERMISSIVE_ATX_HEADERS: 0x0002,
+  /** Recognize URLs as links. */
+  PERMISSIVE_URL_AUTO_LINKS: 0x0004,
+  /** Recognize e-mails as links.*/
+  PERMISSIVE_EMAIL_AUTO_LINKS: 0x0008,
+  /** Disable indented code blocks. (Only fenced code works.) */
+  NO_INDENTED_CODE_BLOCKS: 0x0010,
+  /** Disable raw HTML blocks. */
+  NO_HTML_BLOCKS: 0x0020,
+  /** Disable raw HTML (inline). */
+  NO_HTML_SPANS: 0x0040,
+  /** Support GitHub-style tables. */
+  TABLES: 0x0100,
+  /** Support strike-through spans (text enclosed in tilde marks, e.g. ~foo bar~). */
+  STRIKETHROUGH: 0x0200,
+  /** Support WWW autolinks (without proto; just 'www.') */
+  PERMISSIVE_WWW_AUTO_LINKS: 0x0400,
+  /** Support GitHub-style task lists. */
+  TASKLISTS: 0x0800,
+  /** Support LaTeX math spans ($...$) and LaTeX display math spans ($$...$$) are supported. (Note though that the HTML renderer outputs them verbatim in a custom tag <x-equation>.) */
+  LATEX_MATH_SPANS: 0x1000,
+  /** Support wiki-style links ([[link label]] and [[target article|link label]]) are supported. (Note that the HTML renderer outputs them in a custom tag <x-wikilink>.) */
+  WIKI_LINKS: 0x2000,
+  /** Denotes an underline instead of an ordinary emphasis or strong emphasis. */
+  UNDERLINE: 0x4000,
+  /** Using hard line breaks. */
+  HARD_SOFT_BREAKS: 0x8000,
+  /** Shorthand for NO_HTML_BLOCKS | NO_HTML_SPANS */
+  NO_HTML: 0x00200 | 0x0040,
+  /** Default flags: COLLAPSE_WHITESPACE | PERMISSIVE_ATX_HEADERS | PERMISSIVE_URL_AUTO_LINKS | STRIKETHROUGH | TABLES | TASK_LISTS */
+  DEFAULT: 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
 };
-
-/**
- * encode the input to Uint8Array if it is a string
- * @param {string | Uint8Array} input
- * @returns {Uint8Array}
- */
-function toUint8Array(vinput) {
-  return typeof vinput === "string" ? enc.encode(vinput) : vinput;
-}
 
 /**
  * readMem returns a Uint8Array view of the wasm memory.
@@ -86,30 +77,31 @@ const allocMem = (data) => {
  * @returns {string} html output
  */
 export function mdToHtml(input, options = {}) {
-  const chunks = [];
-  pull = (chunk) => chunks.push(chunk);
+  const data = typeof input === "string" ? enc.encode(input) : input;
+  if (!(data instanceof Uint8Array)) {
+    throw new TypeError("input must be a string or Uint8Array");
+  }
+  let estHtmlSize = Math.ceil(data.length * 1.3);
+  let buffer = new Uint8Array(estHtmlSize);
+  let len = 0;
+  pull = (chunk) => {
+    const chunkSize = chunk.length;
+    if (len + chunkSize > buffer.length) {
+      const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.3));
+      newBuffer.set(buffer.subarray(0, len));
+      buffer = newBuffer;
+    }
+    buffer.set(chunk, len);
+    len += chunkSize;
+  };
   wasm.render(
-    allocMem(toUint8Array(input)),
+    allocMem(data),
     validateParseFlags(options.parseFlags),
-    64 * 1024, // 64KB buffer size
+    Math.max(estHtmlSize, 256),
     typeof highlighter === "function" ? 1 : 0,
   );
   pull = null;
-  if (chunks.length === 0) {
-    return "";
-  }
-  if (chunks.length === 1) {
-    return dec.decode(chunks[0]);
-  }
-  const buf = new Uint8Array(
-    chunks.reduce((acc, chunk) => acc + chunk.length, 0),
-  );
-  let offset = 0;
-  for (const chunk of chunks) {
-    buf.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return dec.decode(buf);
+  return dec.decode(buffer.subarray(0, len));
 }
 
 /**
@@ -121,15 +113,15 @@ export function mdToHtml(input, options = {}) {
 export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
-      pull = (chunk) => controller.enqueue(chunk);
+      pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
       wasm.render(
         allocMem(typeof input === "string" ? enc.encode(input) : input),
         validateParseFlags(options.parseFlags),
         Math.max(1024, Number(options.bufferSize) || 1024),
         typeof highlighter === "function" ? 1 : 0,
       );
-      pull = null;
       controller.close();
+      pull = null;
     },
   });
 }
@@ -173,13 +165,13 @@ export function initWasm(wasmModule) {
     const instance = new WebAssembly.Instance(wasmModule, {
       env: {
         push: (ptrLen) => {
-          pull(new Uint8Array(readMem(ptrLen)));
+          pull(readMem(ptrLen));
         },
         pushCodeBlock: (languagePtrLen, codePtrLen) => {
           const language = readMem(languagePtrLen);
           const code = readMem(codePtrLen);
           const output = highlighter(dec.decode(language), dec.decode(code));
-          pull(toUint8Array(output));
+          pull(enc.encode(output));
         },
       },
     });
