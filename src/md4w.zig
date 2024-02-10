@@ -88,7 +88,7 @@ const Writer = struct {
                 '<' => self.write("&lt;"),
                 '>' => self.write("&gt;"),
                 '&' => self.write("&amp;"),
-                '"' => self.write("&#34;"),
+                '"' => self.write("&quot;"),
                 else => {},
             }
             start = i + 1;
@@ -96,7 +96,7 @@ const Writer = struct {
     }
     pub fn writeSafeUrl(self: *Writer, input: []const u8) void {
         for (input) |ch| switch (ch) {
-            'A'...'Z', 'a'...'z', '0'...'9', '@', '$', ':', '/', '*', '+', '-', '.', '_', '~', '=', '?', '#', '&', '%' => self.writeByte(ch),
+            'A'...'Z', 'a'...'z', '0'...'9', '_', '$', '@', ':', '+', '-', '*', '/', '.', ',', ';', '~', '=', '?', '!', '#', '&', '%', '(', ')' => self.writeByte(ch),
             else => {
                 var buf: [2]u8 = undefined;
                 _ = std.fmt.bufPrint(&buf, "{X:0>2}", .{ch}) catch unreachable;
