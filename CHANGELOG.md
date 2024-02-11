@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.x (current working branch)
+
+- Fix html/url escaping
+
 ## v0.1.0
 
 By implementing a html renderer in Zig, we removed the dependency on
