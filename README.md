@@ -1,7 +1,7 @@
 # md4w
 
-A **Markdown** renderer written in Zig & C, compiled to WebAssymbly for all
-Javascript Runtimes.
+A **Markdown** renderer written in Zig & C, compiled to **WebAssymbly** for all
+JS runtimes.
 
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
   compliant to CommonMark 0.31, and supports partial GFM like task lists,
