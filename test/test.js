@@ -5,6 +5,7 @@ import {
 import {
   init,
   mdToHtml,
+  mdToJSON,
   mdToReadableHtml,
   setCodeHighlighter,
 } from "../js/index.js";
@@ -65,7 +66,7 @@ Deno.test("render to web stream", async () => {
 });
 
 Deno.test("using code hightlighter", async () => {
-   // unknown language
+  // unknown language
   {
     const html = mdToHtml(
       "# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```",
@@ -99,7 +100,7 @@ Deno.test("using code hightlighter", async () => {
   }
 
   setCodeHighlighter((lang, code) => {
-    return `<pre class="language-${lang}"><code><span class="line">${code}</span></code></pre>`
+    return `<pre class="language-${lang}"><code><span class="line">${code}</span></code></pre>`;
   });
 
   // javascript with highlighter
@@ -125,4 +126,44 @@ Deno.test("using code hightlighter", async () => {
   }
 
   setCodeHighlighter(null);
+});
+
+Deno.test("render to json", async () => {
+  const md = `
+# Jobs
+Stay _foolish_, stay **hungry**!
+
+[Apple](https://apple.com)
+<a href="https://apple.com">Apple</a>
+`;
+
+  const tree = mdToJSON(md);
+  assertEquals(tree, {
+    blocks: [
+      { type: 21, children: ["Jobs"] },
+      {
+        type: 9,
+        children: [
+          "Stay ",
+          { type: 100, children: ["foolish"] },
+          ", stay ",
+          { type: 101, children: ["hungry"] },
+          "!",
+        ],
+      },
+      {
+        type: 9,
+        children: [
+          {
+            type: 102,
+            props: { href: "https://apple.com" },
+            children: ["Apple"],
+          },
+          '<a href="https://apple.com">',
+          "Apple",
+          "</a>",
+        ],
+      },
+    ],
+  });
 });

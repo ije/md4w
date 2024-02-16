@@ -164,7 +164,8 @@ export function mdToReadableHtml(input, options = {}) {
  * @returns {import("./md4w").MDTree} json output
  */
 export function mdToJSON(input, options = {}) {
-  const blocks = JSON.parse(mdToString(input, options, 2));
+  const output = mdToString(input, options, 2);
+  const blocks = JSON.parse(output);
   return { blocks };
 }
 
