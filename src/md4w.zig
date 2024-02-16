@@ -32,7 +32,7 @@ const Writer = struct {
     len: usize = 0,
     slug: []u8 = undefined,
     slug_len: usize = 0,
-    current_block: c.MD_BLOCKTYPE = c.MD_BLOCK_DOC,
+    current_block: c.MD_BLOCKTYPE = 0,
     image_nesting_level: usize = 0,
     has_code_highlighter: bool = undefined,
     pub fn init(buffer_size: usize, has_code_highlighter: bool) Writer {
@@ -70,7 +70,7 @@ const Writer = struct {
         std.mem.copy(u8, self.buf[self.len..], chunk);
         self.len += chunk.len;
     }
-    pub fn writeSafe(self: *Writer, chunk: []const u8) void {
+    pub fn safeWrite(self: *Writer, chunk: []const u8) void {
         var start: usize = 0;
         while (true) {
             var i = start;
@@ -94,7 +94,7 @@ const Writer = struct {
             start = i + 1;
         }
     }
-    pub fn writeSafeUrl(self: *Writer, input: []const u8) void {
+    pub fn safeWriteUrl(self: *Writer, input: []const u8) void {
         for (input) |ch| switch (ch) {
             'A'...'Z', 'a'...'z', '0'...'9', '_', '$', '@', ':', '+', '-', '*', '/', '.', ',', ';', '~', '=', '?', '!', '#', '&', '%', '(', ')' => self.writeByte(ch),
             else => {
@@ -123,10 +123,33 @@ const Writer = struct {
         }
         return self.slug[0..self.slug_len];
     }
+    pub fn writeJSONType(self: *Writer, typ: c.MD_BLOCKTYPE) void {
+        self.write("{\"type\":\"");
+        self.writeByte('0' + @as(u8, @intCast(typ)));
+        self.writeByte('"');
+    }
+    pub fn writeJSONChildren(self: *Writer) void {
+        self.write(",\"children\":[");
+    }
+    pub fn writeJSONTypeAndChildren(self: *Writer, typ: c.MD_BLOCKTYPE) void {
+        self.writeJSONType(typ);
+        self.writeJSONChildren();
+    }
+    pub fn writeJSONProps(self: *Writer) void {
+        self.write(",\"props\":{");
+    }
+    pub fn safeWriteJSONString(self: *Writer, input: []const u8) void {
+        for (input) |ch| {
+            if (ch == '"') {
+                self.writeByte('\\');
+            }
+            self.writeByte(ch);
+        }
+    }
 };
 
-/// The renderer cotains the callbacks for the md4c parser
-const Renderer = struct {
+/// Render markdown to html
+const HTMLRenderer = struct {
     pub fn enterBlock(
         typ: c.MD_BLOCKTYPE,
         detail: ?*anyopaque,
@@ -181,7 +204,7 @@ const Renderer = struct {
                     w.write("<pre><code");
                     if (w.slug_len > 0) {
                         w.write(" class=\"language-");
-                        w.writeSafe(w.slug[0..w.slug_len]);
+                        w.safeWrite(w.slug[0..w.slug_len]);
                         w.writeByte('"');
                     }
                     w.writeByte('>');
@@ -221,7 +244,7 @@ const Renderer = struct {
         userdata: ?*anyopaque,
     ) callconv(.C) c_int {
         const w: *Writer = @ptrCast(@alignCast(userdata));
-        defer w.current_block = c.MD_BLOCK_DOC;
+        defer w.current_block = 0;
         defer w.slug_len = 0;
 
         switch (typ) {
@@ -239,9 +262,9 @@ const Renderer = struct {
                 const h: *c.MD_BLOCK_H_DETAIL = @ptrCast(@alignCast(detail));
                 const slug = w.getSlug();
                 w.write(" <a class=\"anchor\" aria-hidden=\"true\" id=\"");
-                w.writeSafeUrl(slug);
+                w.safeWriteUrl(slug);
                 w.write("\" href=\"#");
-                w.writeSafeUrl(slug);
+                w.safeWriteUrl(slug);
                 w.write("\"></a></h");
                 w.writeByte('0' + @as(u8, @intCast(h.level)));
                 w.write(">\n");
@@ -282,17 +305,17 @@ const Renderer = struct {
             c.MD_SPAN_A => {
                 const a: *c.MD_SPAN_A_DETAIL = @ptrCast(@alignCast(detail));
                 w.write("<a href=\"");
-                w.writeSafeUrl(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size]);
+                w.safeWriteUrl(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size]);
                 if (a.title.size > 0) {
                     w.write("\" title=\"");
-                    w.writeSafe(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size]);
+                    w.safeWrite(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size]);
                 }
                 w.write("\">");
             },
             c.MD_SPAN_IMG => {
                 const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
                 w.write("<img src=\"");
-                w.writeSafeUrl(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
+                w.safeWriteUrl(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
                 w.write("\" alt=\""); // empty alt attribute
             },
             c.MD_SPAN_CODE => w.write("<code>"),
@@ -302,7 +325,7 @@ const Renderer = struct {
             c.MD_SPAN_WIKILINK => {
                 const wikilink: *c.MD_SPAN_WIKILINK_DETAIL = @ptrCast(@alignCast(detail));
                 w.write("<x-wikilink data-target=\"");
-                w.writeSafe(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
+                w.safeWrite(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
                 w.write("\">");
             },
             c.MD_SPAN_U => w.write("<u>"),
@@ -389,13 +412,194 @@ const Renderer = struct {
                     }
                     pushCodeBlock(toJS(w.slug[0..w.slug_len]), toJS(code));
                 } else {
-                    w.writeSafe(code);
+                    w.safeWrite(code);
                 }
             },
             c.MD_TEXT_NORMAL, c.MD_TEXT_LATEXMATH => {
-                w.writeSafe(@as([*]const u8, @ptrCast(ptr))[0..len]);
+                w.safeWrite(@as([*]const u8, @ptrCast(ptr))[0..len]);
             },
             else => {},
+        }
+
+        return 0;
+    }
+};
+
+/// Render markdown to JSON
+const JOSNRenderer = struct {
+    pub fn enterBlock(
+        typ: c.MD_BLOCKTYPE,
+        detail: ?*anyopaque,
+        userdata: ?*anyopaque,
+    ) callconv(.C) c_int {
+        const w: *Writer = @ptrCast(@alignCast(userdata));
+        w.current_block = typ;
+
+        switch (typ) {
+            c.MD_BLOCK_DOC => {
+                // skip
+            },
+            c.MD_BLOCK_OL => {
+                const ol: *c.MD_BLOCK_OL_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONType(typ);
+                if (ol.start > 1) {
+                    w.writeJSONProps();
+                    w.write("\"start\":");
+                    w.writeByte('0' + @as(u8, @intCast(ol.start)));
+                    w.write("}");
+                }
+                w.writeJSONChildren();
+            },
+            c.MD_BLOCK_LI => {
+                const li: *c.MD_BLOCK_LI_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONType(typ);
+                if (li.is_task > 0) {
+                    w.writeJSONProps();
+                    w.write("\"isTask\":true,\"done\":");
+                    w.write(if (li.task_mark == 'x' or li.task_mark == 'X') "true" else "false");
+                    w.write("}");
+                }
+                w.writeJSONChildren();
+            },
+            c.MD_BLOCK_HR => w.write("{\"type\":5}"),
+            c.MD_BLOCK_H => {
+                const h: *c.MD_BLOCK_H_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONTypeAndChildren(10 + h.level);
+            },
+            c.MD_BLOCK_CODE => {
+                const code: *c.MD_BLOCK_CODE_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONType(typ);
+                if (code.lang.size > 0) {
+                    w.writeJSONProps();
+                    w.write("\"lang\":\"");
+                    w.safeWriteJSONString(@as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size]);
+                    w.write("\"}");
+                }
+                w.writeJSONChildren();
+            },
+            c.MD_BLOCK_TH, c.MD_BLOCK_TD => {
+                const td: *c.MD_BLOCK_TD_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONType(typ);
+                w.writeJSONProps();
+                w.write("\"align\":\"");
+                switch (td.@"align") {
+                    c.MD_ALIGN_LEFT => w.write("left"),
+                    c.MD_ALIGN_CENTER => w.write("center"),
+                    c.MD_ALIGN_RIGHT => w.write("right"),
+                    else => {},
+                }
+                w.write("\"}");
+                w.writeJSONChildren();
+            },
+            else => w.writeJSONTypeAndChildren(typ),
+        }
+
+        return 0;
+    }
+
+    pub fn leaveBlock(
+        typ: c.MD_BLOCKTYPE,
+        detail: ?*anyopaque,
+        userdata: ?*anyopaque,
+    ) callconv(.C) c_int {
+        const w: *Writer = @ptrCast(@alignCast(userdata));
+        defer w.current_block = 0;
+        _ = detail;
+
+        switch (typ) {
+            c.MD_BLOCK_DOC, c.MD_BLOCK_HR => {
+                // skip
+            },
+            else => w.write("]}"),
+        }
+
+        return 0;
+    }
+
+    pub fn enterSpan(
+        typ: c.MD_SPANTYPE,
+        detail: ?*anyopaque,
+        userdata: ?*anyopaque,
+    ) callconv(.C) c_int {
+        const w: *Writer = @ptrCast(@alignCast(userdata));
+        const inside_img = w.image_nesting_level > 0;
+
+        if (typ == c.MD_SPAN_IMG)
+            w.image_nesting_level += 1;
+        if (inside_img)
+            return 0;
+
+        switch (typ) {
+            c.MD_SPAN_A => {
+                const a: *c.MD_SPAN_A_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONTypeAndChildren(100 + typ);
+                w.writeJSONProps();
+                w.write("\"href\":\"");
+                w.safeWriteJSONString(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size]);
+                if (a.title.size > 0) {
+                    w.write("\",\"title\":");
+                    w.safeWriteJSONString(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size]);
+                }
+                w.write("\"}");
+            },
+            c.MD_SPAN_IMG => {
+                const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONTypeAndChildren(100 + typ);
+                w.writeJSONProps();
+                w.write("\"src\":\"");
+                w.safeWriteJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
+                w.write("\"}");
+            },
+            c.MD_SPAN_WIKILINK => {
+                const wikilink: *c.MD_SPAN_WIKILINK_DETAIL = @ptrCast(@alignCast(detail));
+                w.writeJSONTypeAndChildren(100 + typ);
+                w.writeJSONProps();
+                w.write("\"target\":\"");
+                w.safeWrite(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
+                w.write("\"}");
+            },
+            else => w.writeJSONTypeAndChildren(100 + typ),
+        }
+
+        return 0;
+    }
+
+    pub fn leaveSpan(
+        typ: c.MD_SPANTYPE,
+        detail: ?*anyopaque,
+        userdata: ?*anyopaque,
+    ) callconv(.C) c_int {
+        const w: *Writer = @ptrCast(@alignCast(userdata));
+
+        if (typ == c.MD_SPAN_IMG)
+            w.image_nesting_level -= 1;
+        if (w.image_nesting_level > 0)
+            return 0;
+        _ = detail;
+
+        w.write("]}");
+
+        return 0;
+    }
+
+    pub fn text(
+        typ: c.MD_TEXTTYPE,
+        ptr: [*c]const c.MD_CHAR,
+        len: c.MD_SIZE,
+        userdata: ?*anyopaque,
+    ) callconv(.C) c_int {
+        const w: *Writer = @ptrCast(@alignCast(userdata));
+
+        switch (typ) {
+            c.MD_TEXT_NULLCHAR => w.writeByte(0),
+            c.MD_TEXT_BR => w.write(if (w.image_nesting_level == 0) "{\"type\":200}" else ""),
+            c.MD_TEXT_SOFTBR => w.writeByte(if (w.image_nesting_level == 0) '\n' else ' '),
+            else => {
+                const text_content = @as([*]const u8, @ptrCast(ptr))[0..len];
+                w.writeByte('"');
+                w.safeWriteJSONString(text_content);
+                w.writeByte('"');
+            },
         }
 
         return 0;
@@ -416,21 +620,28 @@ export fn freeMem(ptr_len: u64) void {
 }
 
 /// the main function to render markdown to html
-export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize) usize {
+export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize, output_type: usize) u64 {
     const md = fromJS(ptr_len);
     defer allocator.free(md);
 
-    const parser = c.MD_PARSER{
+    var parser = c.MD_PARSER{
         .abi_version = 0,
         .flags = flags,
-        .enter_block = Renderer.enterBlock,
-        .leave_block = Renderer.leaveBlock,
-        .enter_span = Renderer.enterSpan,
-        .leave_span = Renderer.leaveSpan,
-        .text = Renderer.text,
+        .enter_block = HTMLRenderer.enterBlock,
+        .leave_block = HTMLRenderer.leaveBlock,
+        .enter_span = HTMLRenderer.enterSpan,
+        .leave_span = HTMLRenderer.leaveSpan,
+        .text = HTMLRenderer.text,
         .debug_log = null,
         .syntax = null,
     };
+    if (output_type == 2) {
+        parser.enter_block = JOSNRenderer.enterBlock;
+        parser.leave_block = JOSNRenderer.leaveBlock;
+        parser.enter_span = JOSNRenderer.enterSpan;
+        parser.leave_span = JOSNRenderer.leaveSpan;
+        parser.text = JOSNRenderer.text;
+    }
 
     var writer = Writer.init(buffer_size, has_code_highlighter > 0);
     defer writer.deinit();
@@ -442,10 +653,8 @@ export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highli
         @ptrFromInt(@intFromPtr(&writer)),
     );
 
-    // flush remaining buffer
-    push(toJS(writer.buf[0..writer.len]));
-
-    return 0;
+    // return remaining buffer
+    return toJS(writer.buf[0..writer.len]);
 }
 
 /// get a slice from the pointer and length

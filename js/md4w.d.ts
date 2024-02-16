@@ -71,6 +71,30 @@ export function mdToReadableHtml(
 ): ReadableStream<Uint8Array>;
 
 /**
+ * MDNode is a node in the markdown tree.
+ */
+export interface MDNode {
+  type: number;
+  props?: Record<string, string>;
+  children?: (string | MDNode)[];
+}
+
+/**
+ * MDTree is a parsed markdown tree.
+ */
+export interface MDTree {
+  blocks: MDNode[];
+}
+
+/**
+ * Converts markdown to json.
+ * @param {string | Uint8Array} input markdown input
+ * @param {Options} options parse options
+ * @returns {MDTree} json output
+ */
+export function mdToJSON(input: string | Uint8Array, options?: Options): MDTree;
+
+/**
  * Code highlighter interface.
  */
 export interface CodeHighlighter {

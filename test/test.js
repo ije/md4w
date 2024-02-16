@@ -2,7 +2,6 @@ import {
   assertEquals,
   assertStringIncludes as assertIncludes,
 } from "https://deno.land/std@0.200.0/testing/asserts.ts";
-import { getHighlighter } from "https://esm.sh/shiki@1.0.0-rc.0/bundle/web";
 import {
   init,
   mdToHtml,
@@ -66,12 +65,7 @@ Deno.test("render to web stream", async () => {
 });
 
 Deno.test("using code hightlighter", async () => {
-  const highlighter = await getHighlighter({
-    themes: ["vitesse-dark"],
-    langs: ["javascript"],
-  });
-
-  // unknown language
+   // unknown language
   {
     const html = mdToHtml(
       "# Code block example\n\n```\n<plain-text>Hey :)</plain-text>\n```",
@@ -105,7 +99,7 @@ Deno.test("using code hightlighter", async () => {
   }
 
   setCodeHighlighter((lang, code) => {
-    return highlighter.codeToHtml(code, { lang, theme: "vitesse-dark" });
+    return `<pre class="language-${lang}"><code><span class="line">${code}</span></code></pre>`
   });
 
   // javascript with highlighter
@@ -114,7 +108,7 @@ Deno.test("using code hightlighter", async () => {
       "# Code block example\n\n```javascript\nconst a = 1;\n```",
     );
     assertIncludes(html, "<h1>Code block example");
-    assertIncludes(html, '<pre class="shiki vitesse-dark"');
+    assertIncludes(html, '<pre class="language-javascript">');
     assertIncludes(html, '<code><span class="line"');
     assertIncludes(html, "</code></pre>");
   }

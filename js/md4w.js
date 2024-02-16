@@ -46,6 +46,26 @@ export const ParseFlags = {
 };
 
 /**
+ * Validates the parse flags.
+ * @param {number | object} parseFlags
+ * @returns {number} validated parse flags
+ */
+function validateParseFlags(parseFlags) {
+  if (typeof parseFlags === "number") {
+    return parseFlags;
+  }
+  if (typeof parseFlags === "object" && parseFlags !== null) {
+    const keys = (Array.isArray(parseFlags)
+      ? parseFlags
+      : Object.entries(parseFlags).filter(([, v]) =>
+        !!v
+      ).map(([k]) => k)).filter((k) => k in ParseFlags);
+    return keys.reduce((acc, k) => acc | ParseFlags[k], 0);
+  }
+  return ParseFlags.DEFAULT;
+}
+
+/**
  * readMem returns a Uint8Array view of the wasm memory.
  *
  * @param {bigint} ptrLen pointer(32-bit) and length(32-bit) encoded as a single 64-bit int (BigInt)
@@ -71,37 +91,46 @@ const allocMem = (data) => {
 };
 
 /**
- * Converts markdown to html.
- * @param {string | Uint8Array} input markdown input
- * @param {import("./md4w").Options} options parse options
- * @returns {string} html output
+ * Converts markdown to string.
  */
-export function mdToHtml(input, options = {}) {
+function mdToString(input, options = {}, renderer = 0) {
   const data = typeof input === "string" ? enc.encode(input) : input;
   if (!(data instanceof Uint8Array)) {
     throw new TypeError("input must be a string or Uint8Array");
   }
-  let estHtmlSize = Math.ceil(data.length * 1.3);
+  let estHtmlSize = Math.ceil(data.length * 1.5);
   let buffer = new Uint8Array(estHtmlSize);
   let len = 0;
   pull = (chunk) => {
     const chunkSize = chunk.length;
     if (len + chunkSize > buffer.length) {
-      const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.3));
+      const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.5));
       newBuffer.set(buffer.subarray(0, len));
       buffer = newBuffer;
     }
     buffer.set(chunk, len);
     len += chunkSize;
   };
-  wasm.render(
+  const ptrLen = wasm.render(
     allocMem(data),
     validateParseFlags(options.parseFlags),
     Math.max(estHtmlSize, 256),
     typeof highlighter === "function" ? 1 : 0,
+    renderer,
   );
+  pull(new Uint8Array(readMem(ptrLen)));
   pull = null;
   return dec.decode(buffer.subarray(0, len));
+}
+
+/**
+ * Converts markdown to html.
+ * @param {string | Uint8Array} input markdown input
+ * @param {import("./md4w").Options} options parse options
+ * @returns {string} html output
+ */
+export function mdToHtml(input, options = {}) {
+  return mdToString(input, options);
 }
 
 /**
@@ -114,12 +143,14 @@ export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
       pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
-      wasm.render(
+      const ptrLen = wasm.render(
         allocMem(typeof input === "string" ? enc.encode(input) : input),
         validateParseFlags(options.parseFlags),
         Math.max(1024, Number(options.bufferSize) || 1024),
         typeof highlighter === "function" ? 1 : 0,
+        0, // html
       );
+      pull(new Uint8Array(readMem(ptrLen)));
       controller.close();
       pull = null;
     },
@@ -127,23 +158,14 @@ export function mdToReadableHtml(input, options = {}) {
 }
 
 /**
- * Validates the parse flags.
- * @param {number | object} parseFlags
- * @returns {number} validated parse flags
+ * Converts markdown to json.
+ * @param {string | Uint8Array} input markdown input
+ * @param {import("./md4w").Options} options parse options
+ * @returns {import("./md4w").MDTree} json output
  */
-function validateParseFlags(parseFlags) {
-  if (typeof parseFlags === "number") {
-    return parseFlags;
-  }
-  if (typeof parseFlags === "object" && parseFlags !== null) {
-    const keys = (Array.isArray(parseFlags)
-      ? parseFlags
-      : Object.entries(parseFlags).filter(([, v]) =>
-        !!v
-      ).map(([k]) => k)).filter((k) => k in ParseFlags);
-    return keys.reduce((acc, k) => acc | ParseFlags[k], 0);
-  }
-  return ParseFlags.DEFAULT;
+export function mdToJSON(input, options = {}) {
+  const blocks = JSON.parse(mdToString(input, options, 2));
+  return { blocks };
 }
 
 /**
