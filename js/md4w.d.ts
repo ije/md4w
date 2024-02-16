@@ -74,16 +74,16 @@ export function mdToReadableHtml(
  * MDNode is a node in the markdown tree.
  */
 export interface MDNode {
-  type: number;
-  props?: Record<string, string>;
-  children?: (string | MDNode)[];
+  readonly type: number;
+  readonly props?: Record<string, string>;
+  readonly children?: readonly (string | MDNode)[];
 }
 
 /**
  * MDTree is a parsed markdown tree.
  */
 export interface MDTree {
-  blocks: MDNode[];
+  readonly blocks: MDNode[];
 }
 
 /**
