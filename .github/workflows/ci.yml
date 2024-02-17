@@ -23,7 +23,7 @@ jobs:
           version: 0.11.0
 
       - name: Setup Binaryen
-        uses: Aandreba/setup-binaryen
+        uses: Aandreba/setup-binaryen@v1
         with:
           version: 116
 
