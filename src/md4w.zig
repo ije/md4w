@@ -320,7 +320,7 @@ const HTMLRenderer = struct {
                 const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
                 w.write("<img src=\"");
                 w.safeWriteUrl(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
-                w.write("\" alt=\""); // empty alt attribute
+                w.write("\" alt=\""); // alt text will be added in the text callback
             },
             c.MD_SPAN_CODE => w.write("<code>"),
             c.MD_SPAN_DEL => w.write("<del>"),
@@ -350,13 +350,19 @@ const HTMLRenderer = struct {
             w.image_nesting_level -= 1;
         if (w.image_nesting_level > 0)
             return 0;
-        _ = detail;
 
         switch (typ) {
             c.MD_SPAN_EM => w.write("</em>"),
             c.MD_SPAN_STRONG => w.write("</strong>"),
             c.MD_SPAN_A => w.write("</a>"),
-            c.MD_SPAN_IMG => w.writeByte('>'),
+            c.MD_SPAN_IMG => {
+                const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
+                if (img.title.size > 0) {
+                    w.write("\" title=\"");
+                    w.safeWrite(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size]);
+                }
+                w.write("\">");
+            },
             c.MD_SPAN_CODE => w.write("</code>"),
             c.MD_SPAN_DEL => w.write("</del>"),
             c.MD_SPAN_LATEXMATH, c.MD_SPAN_LATEXMATH_DISPLAY => w.write("</x-equation>"),
@@ -562,8 +568,7 @@ const JOSNRenderer = struct {
                 w.writeJSONProps();
                 w.write("\"src\":\"");
                 w.safeWriteJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
-                w.write("\"}");
-                w.writeJSONChildren();
+                w.write("\",\"alt\":"); // alt text will be added in the text callback
             },
             c.MD_SPAN_WIKILINK => {
                 const wikilink: *c.MD_SPAN_WIKILINK_DETAIL = @ptrCast(@alignCast(detail));
@@ -586,7 +591,6 @@ const JOSNRenderer = struct {
         userdata: ?*anyopaque,
     ) callconv(.C) c_int {
         const w: *Writer = @ptrCast(@alignCast(userdata));
-        _ = detail;
 
         if (typ == c.MD_SPAN_IMG)
             w.image_nesting_level -= 1;
@@ -594,7 +598,20 @@ const JOSNRenderer = struct {
             return 0;
 
         w.current_span = 100;
-        w.write("]}");
+        if (typ == c.MD_SPAN_IMG) {
+            const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
+            if (w.buf[w.len - 1] == ':') {
+                w.write("\"\""); // no alt text
+            }
+            if (img.title.size > 0) {
+                w.write(",\"title\":\"");
+                w.safeWriteJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size]);
+                w.write("\"");
+            }
+            w.write("}}");
+        } else {
+            w.write("]}");
+        }
 
         return 0;
     }

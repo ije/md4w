@@ -7,6 +7,7 @@ import {
   mdToHtml,
   mdToJSON,
   mdToReadableHtml,
+  NodeType,
   setCodeHighlighter,
 } from "../js/index.js";
 
@@ -44,6 +45,12 @@ Deno.test("render to string", async (t) => {
       assertIncludes(html, '<a href="https://esm.sh"');
       assertIncludes(html, '" title="Global ESM CDN"');
       assertIncludes(html, "ESM&gt;CDN</a>");
+    }
+
+    {
+      const html = mdToHtml("![logo.svg](https://esm.sh/logo.svg 'ESM logo')");
+      assertIncludes(html, '<img src="https://esm.sh/logo.svg"');
+      assertIncludes(html, '" alt="logo.svg" title="ESM logo">');
     }
 
     {
@@ -130,6 +137,10 @@ Deno.test("using code hightlighter", async () => {
 
 Deno.test("render to json", async () => {
   const md = `
+![image.png](https://example.com/image.png 'this is an image')
+![](https://example.com/image.png)
+
+
 # Jobs
 Stay _foolish_, stay **hungry**!
 
@@ -139,23 +150,43 @@ Stay _foolish_, stay **hungry**!
 
   const tree = mdToJSON(md);
   assertEquals(tree, {
-    blocks: [
-      { type: 21, children: ["Jobs"] },
+    children: [
       {
-        type: 9,
+        type: NodeType.P,
+        children: [
+          {
+            type: NodeType.IMG,
+            props: {
+              src: "https://example.com/image.png",
+              alt: "image.png",
+              title: "this is an image",
+            },
+          },
+          {
+            type: NodeType.IMG,
+            props: {
+              src: "https://example.com/image.png",
+              alt: "",
+            },
+          },
+        ],
+      },
+      { type: NodeType.H1, children: ["Jobs"] },
+      {
+        type: NodeType.P,
         children: [
           "Stay ",
-          { type: 100, children: ["foolish"] },
+          { type: NodeType.EM, children: ["foolish"] },
           ", stay ",
-          { type: 101, children: ["hungry"] },
+          { type: NodeType.STRONG, children: ["hungry"] },
           "!",
         ],
       },
       {
-        type: 9,
+        type: NodeType.P,
         children: [
           {
-            type: 102,
+            type: NodeType.A,
             props: { href: "https://apple.com" },
             children: ["Apple"],
           },

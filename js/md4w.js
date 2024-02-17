@@ -8,7 +8,7 @@ let highlighter;
 /**
  * ParseFlags is a set of flags for md4c parser.
  */
-export const ParseFlags = {
+export const ParseFlags = Object.freeze({
   /** Collapse non-trivial whitespace into single space. */
   COLLAPSE_WHITESPACE: 0x0001,
   /** Do not require space in ATX headers ( ###header ) */
@@ -43,7 +43,40 @@ export const ParseFlags = {
   NO_HTML: 0x00200 | 0x0040,
   /** Default flags: COLLAPSE_WHITESPACE | PERMISSIVE_ATX_HEADERS | PERMISSIVE_URL_AUTO_LINKS | STRIKETHROUGH | TABLES | TASK_LISTS */
   DEFAULT: 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
-};
+});
+
+export const NodeType = Object.freeze({
+  QUOTE: 1,
+  UL: 2,
+  OL: 3,
+  LI: 4,
+  HR: 5,
+  HTML: 6,
+  CODE_BLOCK: 7,
+  P: 9,
+  TABLE: 10,
+  THEAD: 11,
+  TBODY: 12,
+  TR: 13,
+  TH: 14,
+  TD: 15,
+  H1: 21,
+  H2: 22,
+  H3: 23,
+  H4: 24,
+  H5: 25,
+  H6: 26,
+  EM: 100,
+  STRONG: 101,
+  A: 102,
+  IMG: 103,
+  CODE_SPAN: 104,
+  DEL: 105,
+  LATEXMATH: 106,
+  LATEXMATH_DISPLAY: 107,
+  WIKILINK: 108,
+  U: 109,
+});
 
 /**
  * Validates the parse flags.
@@ -165,8 +198,9 @@ export function mdToReadableHtml(input, options = {}) {
  */
 export function mdToJSON(input, options = {}) {
   const output = mdToString(input, options, 2);
-  const blocks = JSON.parse(output);
-  return { blocks };
+  console.log(output)
+  const children = JSON.parse(output);
+  return { children };
 }
 
 /**
