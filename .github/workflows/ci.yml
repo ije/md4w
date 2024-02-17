@@ -14,11 +14,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.11.0
+
+      - name: Setup Binaryen
+        uses: Aandreba/setup-binaryen
+        with:
+          version: 116
 
       - name: Setup Deno
         uses: denoland/setup-deno@main
