@@ -166,6 +166,11 @@ const Writer = struct {
             }
         }
     }
+    pub fn stripTrailingComma(self: *Writer) void {
+        if (self.buf[self.len - 1] == ',') {
+            self.len -= 1;
+        }
+    }
 };
 
 /// Render markdown to html
@@ -542,9 +547,7 @@ const JOSNRenderer = struct {
         if (typ == c.MD_BLOCK_HR) {
             w.writeByte(',');
         } else {
-            if (w.buf[w.len - 1] == ',') {
-                w.len -= 1;
-            }
+            w.stripTrailingComma();
             w.write("]},");
         }
 
@@ -625,9 +628,7 @@ const JOSNRenderer = struct {
             }
             w.write("}},");
         } else {
-            if (w.buf[w.len - 1] == ',') {
-                w.len -= 1;
-            }
+            w.stripTrailingComma();
             w.write("]},");
         }
 
@@ -741,9 +742,7 @@ export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highli
     );
 
     if (output_json) {
-        if (writer.buf[writer.len - 1] == ',') {
-            writer.len -= 1;
-        }
+        writer.stripTrailingComma();
         writer.writeByte(']');
     }
 
