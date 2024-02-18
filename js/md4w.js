@@ -220,7 +220,7 @@ export function setCodeHighlighter(codeHighlighter) {
 
 /**
  * Initializes the wasm module.
- * @param {WebAssembly.Module | { render: CallableFunction }} wasmModule
+ * @param {WebAssembly.Module | { allocMem: CallableFunction }} wasmModule
  * @returns {void}
  */
 export function initWasm(wasmModule) {
@@ -238,11 +238,9 @@ export function initWasm(wasmModule) {
   if (wasmModule instanceof WebAssembly.Module) {
     const instance = new WebAssembly.Instance(wasmModule, { env });
     wasm = instance.exports;
-  } else {
-    // unwasm sepcific
-    if (wasmModule.default) {
-      wasmModule.default(env);
-    }
+  } else if (wasmModule.default && wasmModule.allocMem) {
+    // unwasm specific
+    wasmModule.default(env);
     wasm = wasmModule;
   }
 }
