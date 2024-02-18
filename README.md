@@ -4,35 +4,38 @@ A **Markdown** renderer written in Zig & C, compiled to **WebAssymbly** for all
 JS runtimes.
 
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
-  compliant to CommonMark 0.31, and supports partial GFM like task lists,
-  tables, etc.
-- **Fast**: written in Zig & C, compiled to WebAssembly (it's about 2.5x faster than
-  markdown-it, see [benchmark](#benchmark)).
+  compliant to CommonMark 0.31, and partially supports GFM like task list,
+  tabls, etc.
+- **Fast**: written in Zig & C, compiled to WebAssembly (it's about 2.5x faster
+  than markdown-it, see [benchmark](#benchmark)).
 - **Small**: `~25KB` gzipped.
 - **Simple**: zero dependencies, easy to use.
 - **Streaming**: supports web streaming API for large markdown files.
 - **Universal**: works in any JavaScript runtime (Node.js, Deno, Bun, Browsers,
-  Cloudflare Workers, etc.).
+  Cloudflare Workers, etc).
 
 ## Usage
 
 ```js
 // npm i md4w (Node.js, Bun, Cloudflare Workers, etc.)
-import { init, mdToHtml, mdToReadableHtml } from "md4w";
+import { init, mdToHtml, mdToJSON, mdToReadableHtml } from "md4w";
 // or use the CDN url (Deno, Browsers)
-import { init, mdToHtml, mdToReadableHtml } from "https://esm.sh/md4w";
+import { init, mdToHtml, mdToReadableHtml, mdToJSON } from "https://esm.sh/md4w";
 
 // waiting for md4w.wasm...
 await init();
 
 // markdown -> HTML
-const html = mdToHtml("# Hello, World!");
+const html = mdToHtml("Stay _foolish_, stay **hungry**!");
 
 // markdown -> HTML (ReadableStream)
-const readable = mdToReadableHtml("# Hello, World!");
+const readable = mdToReadableHtml("Stay _foolish_, stay **hungry**!");
 const response = new Response(readable, {
   headers: { "Content-Type": "text/html" },
 });
+
+// markdown -> JSON
+const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
 ```
 
 ## Parse Flags
@@ -49,13 +52,13 @@ By default, md4w uses the following parse flags:
 You can use the `parseFlags` option to change the renderer behavior:
 
 ```ts
-mdToHtml("# Hello, World!", {
-  parseFlags: {
-    DEFAULT: true,
-    NO_HTML: true,
-    LATEX_MATH_SPANS: true,
+mdToHtml("Stay _foolish_, stay **hungry**!", {
+  parseFlags: [
+    "DEFAULT",
+    "NO_HTML",
+    "LATEX_MATH_SPANS",
     // ... other parse flags
-  },
+  ],
 });
 ```
 
@@ -122,14 +125,13 @@ setCodeHighlighter((code, lang) => {
 
 ## Web Streaming API
 
-md4w supports web streaming API for large markdown files, this also is useful for a
-http server to stream the response.
+md4w supports web streaming API for large markdown files, this also is useful
+for a http server to stream the outputed html.
 
 ```js
 import { mdToReadableHtml } from "md4w";
 
-const largeMarkdown = `# Hello, World!\n`.repeat(1_000_000);
-const readable = mdToReadableHtml(largeMarkdown);
+const readable = mdToReadableHtml(readFile("large.md"));
 
 // write to file
 const file = await Deno.open("/foo/bar.html", { write: true, create: true });
@@ -159,6 +161,28 @@ mdToReadableHtml(largeMarkdown, {
 
 The streaming API currently only uses the buffer for html output, you still need
 to load the whole markdown data into memory.
+
+## Rendering to JSON
+
+md4w also provides a `mdToJSON` function to render the markdown to JSON.
+
+```js
+const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
+const traverse = (node) => {
+  if (typeof node === "string") {
+    // text node
+    console.log(node);
+    return;
+  }
+  // element type
+  console.log(node.type);
+  // element attributes (may be undefined)
+  console.log(node.props);
+  // element children (may be undefined)
+  node.children?.forEach(traverse);
+};
+traverse(tree);
+```
 
 ## Development
 
