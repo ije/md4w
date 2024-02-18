@@ -33,9 +33,6 @@ const Writer = struct {
     slug: []u8 = undefined,
     slug_len: usize = 0,
     current_block: c.MD_BLOCKTYPE = 0,
-    current_span: c.MD_SPANTYPE = 100,
-    has_block_children: bool = false,
-    has_span_children: bool = false,
     image_nesting_level: usize = 0,
     has_code_highlighter: bool = undefined,
     pub fn init(buffer_size: usize, has_code_highlighter: bool) Writer {
@@ -49,10 +46,13 @@ const Writer = struct {
         allocator.free(self.buf);
         allocator.free(self.slug);
     }
+    fn flush(self: *Writer) void {
+        push(toJS(self.buf[0..self.len]));
+        self.len = 0;
+    }
     pub fn writeByte(self: *Writer, byte: u8) void {
         if (self.len >= self.buf.len) {
-            push(toJS(self.buf[0..self.buf.len]));
-            self.len = 0;
+            self.flush();
         }
         self.buf[self.len] = byte;
         self.len += 1;
@@ -60,18 +60,25 @@ const Writer = struct {
     pub fn write(self: *Writer, chunk: []const u8) void {
         if (chunk.len >= self.buf.len) {
             if (self.len > 0) {
-                push(toJS(self.buf[0..self.len]));
-                self.len = 0;
+                self.flush();
             }
             push(toJS(chunk));
             return;
         }
         if (self.len + chunk.len > self.buf.len) {
-            push(toJS(self.buf[0..self.len]));
-            self.len = 0;
+            self.flush();
         }
         std.mem.copy(u8, self.buf[self.len..], chunk);
         self.len += chunk.len;
+    }
+    fn safeWriteChar(self: *Writer, ch: u8) void {
+        switch (ch) {
+            '<' => self.write("&lt;"),
+            '>' => self.write("&gt;"),
+            '&' => self.write("&amp;"),
+            '"' => self.write("&quot;"),
+            else => self.writeByte(ch),
+        }
     }
     pub fn safeWrite(self: *Writer, chunk: []const u8) void {
         var start: usize = 0;
@@ -87,19 +94,13 @@ const Writer = struct {
             if (i == chunk.len) {
                 break;
             }
-            switch (chunk[i]) {
-                '<' => self.write("&lt;"),
-                '>' => self.write("&gt;"),
-                '&' => self.write("&amp;"),
-                '"' => self.write("&quot;"),
-                else => {},
-            }
+            self.safeWriteChar(chunk[i]);
             start = i + 1;
         }
     }
-    pub fn safeWriteUrl(self: *Writer, input: []const u8) void {
-        for (input) |ch| switch (ch) {
-            'A'...'Z', 'a'...'z', '0'...'9', '_', '$', '@', ':', '+', '-', '*', '/', '.', ',', ';', '~', '=', '?', '!', '#', '&', '%', '(', ')' => self.writeByte(ch),
+    fn safeWriteUrlChar(self: *Writer, ch: u8) void {
+        switch (ch) {
+            'A'...'Z', 'a'...'z', '0'...'9', '_', '$', '@', ':', '+', '-', '*', '/', '.', ',', ';', '~', '=', '?', '!', '#', '&', '%', '(', ')', '[', ']' => self.writeByte(ch),
             else => {
                 var buf: [2]u8 = undefined;
                 _ = std.fmt.bufPrint(&buf, "{X:0>2}", .{ch}) catch unreachable;
@@ -107,7 +108,12 @@ const Writer = struct {
                 self.writeByte(buf[0]);
                 self.writeByte(buf[1]);
             },
-        };
+        }
+    }
+    pub fn safeWriteUrl(self: *Writer, input: []const u8) void {
+        for (input) |ch| {
+            self.safeWriteUrlChar(ch);
+        }
     }
     pub fn updateSlug(self: *Writer, ch: u8) void {
         // skip if the last character is already a hyphen
@@ -142,12 +148,22 @@ const Writer = struct {
     pub fn writeJSONProps(self: *Writer) void {
         self.write(",\"props\":{");
     }
-    pub fn safeWriteJSONString(self: *Writer, input: []const u8) void {
-        for (input) |ch| {
-            if (ch == '"') {
+    pub fn writeJSONString(self: *Writer, input: []const u8, escape: u2) void {
+        for (input, 0..) |ch, i| {
+            const br = ch == '\n';
+            if (br or (ch == '"' and (i == 0 or input[i - 1] != '\\'))) {
                 self.writeByte('\\');
             }
-            self.writeByte(ch);
+            if (br) {
+                self.writeByte('n');
+                continue;
+            }
+            switch (escape) {
+                0 => self.writeByte(ch),
+                1 => self.safeWriteChar(ch),
+                2 => self.safeWriteUrlChar(ch),
+                else => unreachable,
+            }
         }
     }
 };
@@ -445,11 +461,9 @@ const JOSNRenderer = struct {
         const w: *Writer = @ptrCast(@alignCast(userdata));
 
         // skip the document block
-        if (typ == c.MD_BLOCK_DOC or typ == c.MD_BLOCK_HTML) {
+        if (typ == c.MD_BLOCK_DOC) {
             return 0;
         }
-
-        if (w.current_block > 0) w.writeByte(',');
         w.current_block = typ;
 
         switch (typ) {
@@ -460,7 +474,7 @@ const JOSNRenderer = struct {
                     w.writeJSONProps();
                     w.write("\"start\":");
                     w.writeByte('0' + @as(u8, @intCast(ol.start)));
-                    w.write("}");
+                    w.writeByte('}');
                 }
                 w.writeJSONChildren();
             },
@@ -471,7 +485,7 @@ const JOSNRenderer = struct {
                     w.writeJSONProps();
                     w.write("\"isTask\":true,\"done\":");
                     w.write(if (li.task_mark == 'x' or li.task_mark == 'X') "true" else "false");
-                    w.write("}");
+                    w.writeByte('}');
                 }
                 w.writeJSONChildren();
             },
@@ -486,7 +500,7 @@ const JOSNRenderer = struct {
                 if (code.lang.size > 0) {
                     w.writeJSONProps();
                     w.write("\"lang\":\"");
-                    w.safeWriteJSONString(@as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size]);
+                    w.writeJSONString(@as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size], 1);
                     w.write("\"}");
                 }
                 w.writeJSONChildren();
@@ -520,12 +534,19 @@ const JOSNRenderer = struct {
         _ = detail;
 
         // skip the document block
-        if (typ == c.MD_BLOCK_DOC or typ == c.MD_BLOCK_HTML) {
+        if (typ == c.MD_BLOCK_DOC) {
             return 0;
         }
+        w.current_block = 0;
 
-        w.has_block_children = false;
-        w.write("]}");
+        if (typ == c.MD_BLOCK_HR) {
+            w.writeByte(',');
+        } else {
+            if (w.buf[w.len - 1] == ',') {
+                w.len -= 1;
+            }
+            w.write("]},");
+        }
 
         return 0;
     }
@@ -543,21 +564,16 @@ const JOSNRenderer = struct {
         if (inside_img)
             return 0;
 
-        if (w.has_block_children) w.writeByte(',');
-        w.current_span = typ;
-        w.has_block_children = true;
-        w.has_span_children = false;
-
         switch (typ) {
             c.MD_SPAN_A => {
                 const a: *c.MD_SPAN_A_DETAIL = @ptrCast(@alignCast(detail));
                 w.writeJSONType(100 + typ);
                 w.writeJSONProps();
                 w.write("\"href\":\"");
-                w.safeWriteJSONString(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size]);
+                w.writeJSONString(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size], 2);
                 if (a.title.size > 0) {
                     w.write("\",\"title\":");
-                    w.safeWriteJSONString(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size]);
+                    w.writeJSONString(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size], 1);
                 }
                 w.write("\"}");
                 w.writeJSONChildren();
@@ -567,7 +583,7 @@ const JOSNRenderer = struct {
                 w.writeJSONType(100 + typ);
                 w.writeJSONProps();
                 w.write("\"src\":\"");
-                w.safeWriteJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size]);
+                w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 2);
                 w.write("\",\"alt\":"); // alt text will be added in the text callback
             },
             c.MD_SPAN_WIKILINK => {
@@ -597,20 +613,22 @@ const JOSNRenderer = struct {
         if (w.image_nesting_level > 0)
             return 0;
 
-        w.current_span = 100;
         if (typ == c.MD_SPAN_IMG) {
             const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
             if (w.buf[w.len - 1] == ':') {
                 w.write("\"\""); // no alt text
             }
             if (img.title.size > 0) {
-                w.write(",\"title\":\"");
-                w.safeWriteJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size]);
+                w.write("\"title\":\"");
+                w.writeJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size], 1);
                 w.write("\"");
             }
-            w.write("}}");
+            w.write("}},");
         } else {
-            w.write("]}");
+            if (w.buf[w.len - 1] == ',') {
+                w.len -= 1;
+            }
+            w.write("]},");
         }
 
         return 0;
@@ -624,22 +642,44 @@ const JOSNRenderer = struct {
     ) callconv(.C) c_int {
         const w: *Writer = @ptrCast(@alignCast(userdata));
 
+        if (typ == c.MD_TEXT_NULLCHAR) {
+            // ignore null character
+            return 0;
+        }
+
         switch (typ) {
-            c.MD_TEXT_NULLCHAR, c.MD_TEXT_BR, c.MD_TEXT_SOFTBR => {
-                // skip
+            c.MD_TEXT_BR => {
+                if (w.image_nesting_level == 0) {
+                    w.writeJSONTypeAndChildren(c.MD_BLOCK_HTML);
+                    w.write("\"<br>\n\"],");
+                } else {
+                    w.write("\" \",");
+                }
+            },
+            c.MD_TEXT_SOFTBR => {
+                if (w.image_nesting_level == 0) {
+                    w.write("\"\\n\",");
+                } else {
+                    w.write("\" \",");
+                }
+            },
+            c.MD_TEXT_ENTITY, c.MD_TEXT_HTML => {
+                if (w.current_block == c.MD_BLOCK_HTML) {
+                    w.writeByte('"');
+                    w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], 0);
+                    w.write("\",");
+                } else {
+                    w.writeJSONTypeAndChildren(c.MD_BLOCK_HTML);
+                    w.writeByte('"');
+                    w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], 0);
+                    w.write("\"]},");
+                }
             },
             else => {
-                if (w.current_span != 100) {
-                    if (w.has_span_children) w.writeByte(',');
-                    w.has_span_children = true;
-                } else {
-                    if (w.has_block_children) w.writeByte(',');
-                    w.has_block_children = true;
-                }
-                const text_content = @as([*]const u8, @ptrCast(ptr))[0..len];
+                const escape: u2 = if (typ == c.MD_TEXT_CODE) 0 else 1;
                 w.writeByte('"');
-                w.safeWriteJSONString(text_content);
-                w.writeByte('"');
+                w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], escape);
+                w.write("\",");
             },
         }
 
@@ -701,6 +741,9 @@ export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highli
     );
 
     if (output_json) {
+        if (writer.buf[writer.len - 1] == ',') {
+            writer.len -= 1;
+        }
         writer.writeByte(']');
     }
 

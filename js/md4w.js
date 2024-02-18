@@ -51,8 +51,8 @@ export const NodeType = Object.freeze({
   OL: 3,
   LI: 4,
   HR: 5,
-  HTML: 6,
   CODE_BLOCK: 7,
+  HTML: 8,
   P: 9,
   TABLE: 10,
   THEAD: 11,
@@ -198,9 +198,12 @@ export function mdToReadableHtml(input, options = {}) {
  */
 export function mdToJSON(input, options = {}) {
   const output = mdToString(input, options, 2);
-  console.log(output)
-  const children = JSON.parse(output);
-  return { children };
+  try {
+    const children = JSON.parse(output);
+    return { children };
+  } catch (error) {
+    throw new Error("Failed to parse JSON: " + error.message + "\n" + output);
+  }
 }
 
 /**
