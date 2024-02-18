@@ -224,22 +224,25 @@ export function setCodeHighlighter(codeHighlighter) {
  * @returns {void}
  */
 export function initWasm(wasmModule) {
+  const env = {
+    push: (ptrLen) => {
+      pull(readMem(ptrLen));
+    },
+    pushCodeBlock: (languagePtrLen, codePtrLen) => {
+      const language = readMem(languagePtrLen);
+      const code = readMem(codePtrLen);
+      const output = highlighter(dec.decode(language), dec.decode(code));
+      pull(enc.encode(output));
+    },
+  };
   if (wasmModule instanceof WebAssembly.Module) {
-    const instance = new WebAssembly.Instance(wasmModule, {
-      env: {
-        push: (ptrLen) => {
-          pull(readMem(ptrLen));
-        },
-        pushCodeBlock: (languagePtrLen, codePtrLen) => {
-          const language = readMem(languagePtrLen);
-          const code = readMem(codePtrLen);
-          const output = highlighter(dec.decode(language), dec.decode(code));
-          pull(enc.encode(output));
-        },
-      },
-    });
+    const instance = new WebAssembly.Instance(wasmModule, { env });
     wasm = instance.exports;
   } else {
+    // unwasm sepcific
+    if (wasmModule.default) {
+      wasmModule.default(env);
+    }
     wasm = wasmModule;
   }
 }

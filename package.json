@@ -9,7 +9,7 @@
   "exports": {
     ".": {
       "unwasm": "./js/unwasm.js",
-      "workerd": "./js/unwasm.js",
+      "workerd": "./js/workerd.js",
       "import": "./js/index.js",
       "types": "./js/md4w.d.ts"
     }

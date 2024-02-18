@@ -109,7 +109,7 @@ export enum NodeType {
 /**
  * NodeProps is a type of the node properties.
  */
-export type NodeProps<T> =  Record<string, undefined> & T
+export type NodeProps<T> = Record<string, undefined> & T;
 
 /**
  * MDNode is a node in the markdown tree.
@@ -145,18 +145,18 @@ export type MDNode = {
   readonly type: NodeType.TH | NodeType.TD;
   readonly props: NodeProps<{ align: "left" | "center" | "right" | "" }>;
   readonly children: readonly (string | MDNode)[];
-}| {
+} | {
   readonly type: NodeType.HR;
   readonly props: undefined;
   readonly children: undefined;
-}  | {
+} | {
   readonly type: NodeType.A;
   readonly props: NodeProps<{ href: string; title?: string }>;
   readonly children: readonly (string | MDNode)[];
 } | {
   readonly type: NodeType.IMG;
   readonly props: NodeProps<{ src: string; alt: string; title?: string }>;
-  readonly children: undefined
+  readonly children: undefined;
 } | {
   readonly type: NodeType.WIKILINK;
   readonly props: NodeProps<{ target: string }>;
