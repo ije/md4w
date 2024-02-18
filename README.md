@@ -167,7 +167,6 @@ to load the whole markdown data into memory.
 md4w also provides a `mdToJSON` function to render the markdown to JSON.
 
 ```js
-const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
 const traverse = (node) => {
   if (typeof node === "string") {
     // text node
@@ -181,8 +180,28 @@ const traverse = (node) => {
   // element children (may be undefined)
   node.children?.forEach(traverse);
 };
+
+const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
 traverse(tree);
 ```
+
+### Node Type
+
+The node type is a number that represents the type of the node. You can import
+the `NodeType` enum to get the human-readable node type.
+
+```ts
+import { NodeType } from "md4w";
+
+console.log(NodeType.P); // 9
+console.log(NodeType.IMG); // 103
+
+if (node.type === NodeType.IMG) {
+  console.log("This is an image node, `src` is", node.props.src);
+}
+```
+
+> All available node types are defined in the [`NodeType` enum](./js/md4w.d.ts#L76).
 
 ## Development
 
