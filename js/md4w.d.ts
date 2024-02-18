@@ -70,6 +70,9 @@ export function mdToReadableHtml(
   options?: Options,
 ): ReadableStream<Uint8Array>;
 
+/**
+ * NodeType is a type of the markdown node.
+ */
 export enum NodeType {
   QUOTE = 1,
   UL = 2,
@@ -104,40 +107,60 @@ export enum NodeType {
 }
 
 /**
+ * NodeProps is a type of the node properties.
+ */
+export type NodeProps<T> =  Record<string, undefined> & T
+
+/**
  * MDNode is a node in the markdown tree.
  */
 export type MDNode = {
-  readonly type: number;
-  readonly children: readonly (string | MDNode)[];
-} | {
-  readonly type: NodeType.HR;
-} | {
-  readonly type: NodeType.OL;
-  readonly children: readonly (string | MDNode)[];
-  readonly props?: { start: number };
+  readonly type: Exclude<
+    number,
+    | NodeType.CODE_BLOCK
+    | NodeType.OL
+    | NodeType.LI
+    | NodeType.TH
+    | NodeType.TD
+    | NodeType.HR
+    | NodeType.A
+    | NodeType.IMG
+    | NodeType.WIKILINK
+  >;
+  readonly props?: Record<string, undefined>;
+  readonly children?: readonly (string | MDNode)[];
 } | {
   readonly type: NodeType.CODE_BLOCK;
+  readonly props?: NodeProps<{ lang: string }>;
+  readonly children: readonly string[];
+} | {
+  readonly type: NodeType.OL;
+  readonly props?: NodeProps<{ start: number }>;
   readonly children: readonly (string | MDNode)[];
-  readonly props?: { lang: string };
 } | {
   readonly type: NodeType.LI;
+  readonly props?: NodeProps<{ isTask: boolean; done: boolean }>;
   readonly children: readonly (string | MDNode)[];
-  readonly props?: { isTask: boolean; done: boolean };
 } | {
   readonly type: NodeType.TH | NodeType.TD;
+  readonly props: NodeProps<{ align: "left" | "center" | "right" | "" }>;
   readonly children: readonly (string | MDNode)[];
-  readonly props: { align: "left" | "center" | "right" | "" };
-} | {
+}| {
+  readonly type: NodeType.HR;
+  readonly props: undefined;
+  readonly children: undefined;
+}  | {
   readonly type: NodeType.A;
+  readonly props: NodeProps<{ href: string; title?: string }>;
   readonly children: readonly (string | MDNode)[];
-  readonly props: { href: string; title?: string };
 } | {
   readonly type: NodeType.IMG;
-  readonly props: { src: string; alt: string; title?: string };
+  readonly props: NodeProps<{ src: string; alt: string; title?: string }>;
+  readonly children: undefined
 } | {
   readonly type: NodeType.WIKILINK;
+  readonly props: NodeProps<{ target: string }>;
   readonly children: readonly (string | MDNode)[];
-  readonly props: { target: string };
 };
 
 /**

@@ -45,6 +45,9 @@ export const ParseFlags = Object.freeze({
   DEFAULT: 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
 });
 
+/**
+ * NodeType is a type of the markdown node.
+ */
 export const NodeType = Object.freeze({
   QUOTE: 1,
   UL: 2,
