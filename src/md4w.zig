@@ -32,21 +32,31 @@ const Writer = struct {
     len: usize = 0,
     slug: []u8 = undefined,
     slug_len: usize = 0,
+    code: []u8 = undefined,
+    code_len: usize = 0,
+    code_no_lang: bool = false,
     current_block: c.MD_BLOCKTYPE = 0,
     image_nesting_level: usize = 0,
-    has_code_highlighter: bool = undefined,
+    has_code_highlighter: bool = false,
     pub fn init(buffer_size: usize, has_code_highlighter: bool) Writer {
-        return Writer{
+        var writer = Writer{
             .buf = allocator.alloc(u8, buffer_size) catch unreachable,
             .slug = allocator.alloc(u8, 512) catch unreachable,
             .has_code_highlighter = has_code_highlighter,
         };
+        if (has_code_highlighter) {
+            writer.code = allocator.alloc(u8, 1024) catch unreachable;
+        }
+        return writer;
     }
     pub fn deinit(self: *Writer) void {
         allocator.free(self.buf);
         allocator.free(self.slug);
+        if (self.has_code_highlighter) {
+            allocator.free(self.code);
+        }
     }
-    fn flush(self: *Writer) void {
+    pub fn flush(self: *Writer) void {
         push(toJS(self.buf[0..self.len]));
         self.len = 0;
     }
@@ -68,7 +78,7 @@ const Writer = struct {
         if (self.len + chunk.len > self.buf.len) {
             self.flush();
         }
-        std.mem.copy(u8, self.buf[self.len..], chunk);
+        std.mem.copyForwards(u8, self.buf[self.len..], chunk);
         self.len += chunk.len;
     }
     fn safeWriteChar(self: *Writer, ch: u8) void {
@@ -131,6 +141,14 @@ const Writer = struct {
             return self.slug[0 .. self.slug_len - 1];
         }
         return self.slug[0..self.slug_len];
+    }
+    pub fn updateCode(self: *Writer, chunk: []const u8) void {
+        const new_size = self.code_len + chunk.len;
+        if (new_size > self.code.len) {
+            self.code = allocator.realloc(self.code, new_size + 1024) catch unreachable;
+        }
+        std.mem.copyForwards(u8, self.code[self.code_len..], chunk);
+        self.code_len = new_size;
     }
     pub fn writeJSONType(self: *Writer, typ: c.MD_BLOCKTYPE) void {
         self.write("{\"type\":");
@@ -220,16 +238,13 @@ const HTMLRenderer = struct {
             },
             c.MD_BLOCK_CODE => {
                 const code: *c.MD_BLOCK_CODE_DETAIL = @ptrCast(@alignCast(detail));
-                if (code.lang.size > 0) {
-                    const lang = @as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size];
-                    std.mem.copy(u8, w.slug[0..], lang);
-                    w.slug_len = lang.len;
-                }
-                if (!w.has_code_highlighter or w.slug_len == 0) {
+                w.code_no_lang = code.lang.size == 0;
+                if (!w.has_code_highlighter or w.code_no_lang) {
                     w.write("<pre><code");
-                    if (w.slug_len > 0) {
+                    if (code.lang.size > 0) {
+                        const lang = @as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size];
                         w.write(" class=\"language-");
-                        w.safeWrite(w.slug[0..w.slug_len]);
+                        w.writeJSONString(lang, 1);
                         w.writeByte('"');
                     }
                     w.writeByte('>');
@@ -269,8 +284,7 @@ const HTMLRenderer = struct {
         userdata: ?*anyopaque,
     ) callconv(.C) c_int {
         const w: *Writer = @ptrCast(@alignCast(userdata));
-        defer w.current_block = 0;
-        defer w.slug_len = 0;
+        w.current_block = 0;
 
         switch (typ) {
             c.MD_BLOCK_DOC => {
@@ -293,8 +307,23 @@ const HTMLRenderer = struct {
                 w.write("\"></a></h");
                 w.writeByte('0' + @as(u8, @intCast(h.level)));
                 w.write(">\n");
+                w.slug_len = 0;
             },
-            c.MD_BLOCK_CODE => if (!w.has_code_highlighter or w.slug_len == 0) w.write("</code></pre>\n"),
+            c.MD_BLOCK_CODE => {
+                const code: *c.MD_BLOCK_CODE_DETAIL = @ptrCast(@alignCast(detail));
+                if (!w.has_code_highlighter or code.lang.size == 0) {
+                    w.write("</code></pre>\n");
+                } else if (w.code_len > 0) {
+                    const lang = @as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size];
+                    if (w.len > 0) {
+                        // flush the buffer if not empty
+                        w.flush();
+                    }
+                    pushCodeBlock(toJS(lang), toJS(w.code[0..w.code_len]));
+                    w.code_len = 0;
+                }
+                w.code_no_lang = false;
+            },
             c.MD_BLOCK_HTML => {
                 // skip
             },
@@ -435,13 +464,8 @@ const HTMLRenderer = struct {
             c.MD_TEXT_ENTITY, c.MD_TEXT_HTML => w.write(@as([*]const u8, @ptrCast(ptr))[0..len]),
             c.MD_TEXT_CODE => {
                 const code = @as([*]const u8, @ptrCast(ptr))[0..len];
-                if (w.has_code_highlighter and w.slug_len > 0 and w.current_block == c.MD_BLOCK_CODE) {
-                    // flush the buffer if not empty
-                    if (w.len > 0) {
-                        push(toJS(w.buf[0..w.len]));
-                        w.len = 0;
-                    }
-                    pushCodeBlock(toJS(w.slug[0..w.slug_len]), toJS(code));
+                if (w.has_code_highlighter and w.current_block == c.MD_BLOCK_CODE and !w.code_no_lang) {
+                    w.updateCode(code);
                 } else {
                     w.safeWrite(code);
                 }
