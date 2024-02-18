@@ -570,7 +570,7 @@ const JOSNRenderer = struct {
         switch (typ) {
             c.MD_SPAN_A => {
                 const a: *c.MD_SPAN_A_DETAIL = @ptrCast(@alignCast(detail));
-                w.writeJSONType(100 + typ);
+                w.writeJSONType(30 + typ);
                 w.writeJSONProps();
                 w.write("\"href\":\"");
                 w.writeJSONString(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size], 2);
@@ -583,7 +583,7 @@ const JOSNRenderer = struct {
             },
             c.MD_SPAN_IMG => {
                 const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
-                w.writeJSONType(100 + typ);
+                w.writeJSONType(30 + typ);
                 w.writeJSONProps();
                 w.write("\"src\":\"");
                 w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 2);
@@ -591,14 +591,14 @@ const JOSNRenderer = struct {
             },
             c.MD_SPAN_WIKILINK => {
                 const wikilink: *c.MD_SPAN_WIKILINK_DETAIL = @ptrCast(@alignCast(detail));
-                w.writeJSONType(100 + typ);
+                w.writeJSONType(30 + typ);
                 w.writeJSONProps();
                 w.write("\"target\":\"");
                 w.writeJSONString(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size], 2);
                 w.write("\"}");
                 w.writeJSONChildren();
             },
-            else => w.writeJSONTypeAndChildren(100 + typ),
+            else => w.writeJSONTypeAndChildren(30 + typ),
         }
 
         return 0;
