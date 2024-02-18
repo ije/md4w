@@ -345,7 +345,7 @@ const HTMLRenderer = struct {
             c.MD_SPAN_WIKILINK => {
                 const wikilink: *c.MD_SPAN_WIKILINK_DETAIL = @ptrCast(@alignCast(detail));
                 w.write("<x-wikilink data-target=\"");
-                w.safeWrite(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
+                w.safeWriteUrl(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
                 w.write("\">");
             },
             c.MD_SPAN_U => w.write("<u>"),
@@ -591,7 +591,7 @@ const JOSNRenderer = struct {
                 w.writeJSONType(100 + typ);
                 w.writeJSONProps();
                 w.write("\"target\":\"");
-                w.safeWrite(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size]);
+                w.writeJSONString(@as([*]const u8, @ptrCast(wikilink.target.text))[0..wikilink.target.size], 2);
                 w.write("\"}");
                 w.writeJSONChildren();
             },
