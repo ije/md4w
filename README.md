@@ -5,7 +5,7 @@ JS runtimes.
 
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
   compliant to CommonMark 0.31, and partially supports GFM like task list,
-  tabls, etc.
+  table, etc.
 - **Fast**: written in Zig & C, compiled to WebAssembly (it's about 2.5x faster
   than markdown-it, see [benchmark](#benchmark)).
 - **Small**: `~25KB` gzipped.
@@ -201,7 +201,8 @@ if (node.type === NodeType.IMG) {
 }
 ```
 
-> All available node types are defined in the [`NodeType` enum](./js/md4w.d.ts#L76).
+> All available node types are defined in the
+> [`NodeType` enum](./js/md4w.d.ts#L76).
 
 ## Development
 
