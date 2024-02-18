@@ -147,6 +147,12 @@ Stay _foolish_, stay **hungry**!
 <a href="https://apple.com">Apple</a>
 <!-- comment -->
 
+\`\`\`javascript
+// comment
+
+console.log('Hello, world!');
+\`\`\`
+
 ---
 
 - fruit
@@ -223,6 +229,19 @@ Stay _foolish_, stay **hungry**!
           "<!-- comment -->",
           "\n",
         ],
+      },
+      {
+        type: NodeType.CODE_BLOCK,
+        props: {
+          lang: "javascript",
+        },
+        children: [
+          "// comment",
+          "\n",
+          "\n",
+          "console.log('Hello, world!');",
+          "\n",
+        ]
       },
       {
         type: NodeType.HR,
