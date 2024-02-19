@@ -15,10 +15,10 @@ await init();
 
 Deno.test("render to string", async (t) => {
   await t.step("commonmark-spec", async () => {
-    const md = await Deno.readFile(
+    const specMd = await Deno.readFile(
       new URL("commonmark-spec.md", import.meta.url),
     );
-    const html = mdToHtml(md);
+    const html = mdToHtml(specMd);
     assertIncludes(html, "<h1>Introduction"); // main heading
     assertIncludes(html, '<ol start="2"');
     assertIncludes(html, "<p>After we're done"); // last paragraph
@@ -149,7 +149,7 @@ Deno.test("using code hightlighter", async () => {
 });
 
 Deno.test("render to json", async () => {
-  const md = `
+  const simpleMd = `
 # Jobs
 Stay _foolish_, stay **hungry**!
 
@@ -185,9 +185,11 @@ console.log('Hello, world!');
 | :--- | ---: |
 | \`git status\` | List all *new or modified* files |
 | \`git diff\` | Show file differences that **haven't been** staged |
+
+This is hardly a "corner case," for some reason.
 `;
 
-  const tree = mdToJSON(md);
+  const tree = mdToJSON(simpleMd);
   assertEquals(tree, {
     children: [
       { type: NodeType.H1, children: ["Jobs"] },
@@ -467,6 +469,18 @@ console.log('Hello, world!');
           },
         ],
       },
+      {
+        type: NodeType.P,
+        children: [
+          "This is hardly a \"corner case,\" for some reason.",
+        ],
+      }
     ],
   });
+
+  // Make sure spec can be parsed
+  // const specMd = await Deno.readFile(
+  //   new URL("commonmark-spec.md", import.meta.url),
+  // );
+  // mdToJSON(specMd);
 });

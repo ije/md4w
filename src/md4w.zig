@@ -529,7 +529,7 @@ const JOSNRenderer = struct {
                 if (code.lang.size > 0) {
                     w.writeJSONProps();
                     w.write("\"lang\":\"");
-                    w.writeJSONString(@as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size], 1);
+                    w.writeJSONString(@as([*]const u8, @ptrCast(code.lang.text))[0..code.lang.size], 0);
                     w.write("\"}");
                 }
                 w.writeJSONChildren();
@@ -600,7 +600,7 @@ const JOSNRenderer = struct {
                 w.writeJSONString(@as([*]const u8, @ptrCast(a.href.text))[0..a.href.size], 2);
                 if (a.title.size > 0) {
                     w.write("\",\"title\":");
-                    w.writeJSONString(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size], 1);
+                    w.writeJSONString(@as([*]const u8, @ptrCast(a.title.text))[0..a.title.size], 0);
                 }
                 w.write("\"}");
                 w.writeJSONChildren();
@@ -610,7 +610,7 @@ const JOSNRenderer = struct {
                 w.writeJSONType(30 + typ);
                 w.writeJSONProps();
                 w.write("\"src\":\"");
-                w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 2);
+                w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 0);
                 w.write("\",\"alt\":"); // alt text will be added in the text callback
             },
             c.MD_SPAN_WIKILINK => {
@@ -647,7 +647,7 @@ const JOSNRenderer = struct {
             }
             if (img.title.size > 0) {
                 w.write("\"title\":\"");
-                w.writeJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size], 1);
+                w.writeJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size], 0);
                 w.write("\"");
             }
             w.write("}},");
@@ -701,9 +701,8 @@ const JOSNRenderer = struct {
                 }
             },
             else => {
-                const escape: u2 = if (typ == c.MD_TEXT_CODE) 0 else 1;
                 w.writeByte('"');
-                w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], escape);
+                w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], 0);
                 w.write("\",");
             },
         }
