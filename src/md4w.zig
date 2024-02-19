@@ -81,6 +81,11 @@ const Writer = struct {
         std.mem.copyForwards(u8, self.buf[self.len..], chunk);
         self.len += chunk.len;
     }
+    pub fn writeNumber(self: *Writer, number: anytype) void {
+        var buffer: [4]u8 = undefined;
+        const buf = buffer[0..];
+        self.write(std.fmt.bufPrintIntToSlice(buf, number, 10, .lower, .{}));
+    }
     fn safeWriteChar(self: *Writer, ch: u8) void {
         switch (ch) {
             '<' => self.write("&lt;"),
@@ -152,9 +157,7 @@ const Writer = struct {
     }
     pub fn writeJSONType(self: *Writer, typ: c.MD_BLOCKTYPE) void {
         self.write("{\"type\":");
-        var buffer: [3]u8 = undefined;
-        const buf = buffer[0..];
-        self.write(std.fmt.bufPrintIntToSlice(buf, @as(u8, @intCast(typ)), 10, .lower, .{}));
+        self.writeNumber(@as(u8, @intCast(typ)));
     }
     pub fn writeJSONChildren(self: *Writer) void {
         self.write(",\"children\":[");
@@ -167,22 +170,21 @@ const Writer = struct {
         self.write(",\"props\":{");
     }
     pub fn writeJSONString(self: *Writer, input: []const u8, escape: u2) void {
-        for (input, 0..) |ch, i| {
-            const br = ch == '\n';
-            if (br or (ch == '"' and (i == 0 or input[i - 1] != '\\'))) {
+        for (input) |ch| switch (ch) {
+            '"', '\\' => {
                 self.writeByte('\\');
-            }
-            if (br) {
-                self.writeByte('n');
-                continue;
-            }
-            switch (escape) {
+                self.writeByte(ch);
+            },
+            '\n' => self.write("\\n"),
+            '\r' => self.write("\\r"),
+            '\t' => self.write("\\t"),
+            else => switch (escape) {
                 0 => self.writeByte(ch),
                 1 => self.safeWriteChar(ch),
                 2 => self.safeWriteUrlChar(ch),
                 else => unreachable,
-            }
-        }
+            },
+        };
     }
     pub fn stripTrailingComma(self: *Writer) void {
         if (self.buf[self.len - 1] == ',') {
@@ -211,7 +213,7 @@ const HTMLRenderer = struct {
                 const ol: *c.MD_BLOCK_OL_DETAIL = @ptrCast(@alignCast(detail));
                 if (ol.start > 1) {
                     w.write("<ol start=\"");
-                    w.writeByte('0' + @as(u8, @intCast(ol.start)));
+                    w.writeNumber(@as(usize, @intCast(ol.start)));
                     w.write("\">\n");
                 } else {
                     w.write("<ol>\n");
@@ -502,7 +504,7 @@ const JOSNRenderer = struct {
                 if (ol.start > 1) {
                     w.writeJSONProps();
                     w.write("\"start\":");
-                    w.writeByte('0' + @as(u8, @intCast(ol.start)));
+                    w.writeNumber(@as(usize, @intCast(ol.start)));
                     w.writeByte('}');
                 }
                 w.writeJSONChildren();
@@ -643,12 +645,14 @@ const JOSNRenderer = struct {
         if (typ == c.MD_SPAN_IMG) {
             const img: *c.MD_SPAN_IMG_DETAIL = @ptrCast(@alignCast(detail));
             if (w.buf[w.len - 1] == ':') {
-                w.write("\"\""); // no alt text
+                w.write("\"\","); // no alt text
             }
             if (img.title.size > 0) {
                 w.write("\"title\":\"");
                 w.writeJSONString(@as([*]const u8, @ptrCast(img.title.text))[0..img.title.size], 1);
                 w.write("\"");
+            } else {
+                w.stripTrailingComma();
             }
             w.write("}},");
         } else {
@@ -676,7 +680,7 @@ const JOSNRenderer = struct {
             c.MD_TEXT_BR => {
                 if (w.image_nesting_level == 0) {
                     w.writeJSONTypeAndChildren(c.MD_BLOCK_HTML);
-                    w.write("\"<br>\n\"],");
+                    w.write("\"<br>\\n\"]},");
                 } else {
                     w.write("\" \",");
                 }
