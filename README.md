@@ -168,15 +168,18 @@ md4w also provides a `mdToJSON` function to render the markdown to JSON.
 
 ```js
 const traverse = (node) => {
+  // text node
   if (typeof node === "string") {
-    // text node
     console.log(node);
     return;
   }
+
   // element type
   console.log(node.type);
+
   // element attributes (may be undefined)
   console.log(node.props);
+
   // element children (may be undefined)
   node.children?.forEach(traverse);
 };
