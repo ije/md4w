@@ -8,7 +8,7 @@ let highlighter;
 /**
  * ParseFlags is a set of flags for md4c parser.
  */
-export const ParseFlags = {
+export const ParseFlags = Object.freeze({
   /** Collapse non-trivial whitespace into single space. */
   COLLAPSE_WHITESPACE: 0x0001,
   /** Do not require space in ATX headers ( ###header ) */
@@ -43,7 +43,63 @@ export const ParseFlags = {
   NO_HTML: 0x00200 | 0x0040,
   /** Default flags: COLLAPSE_WHITESPACE | PERMISSIVE_ATX_HEADERS | PERMISSIVE_URL_AUTO_LINKS | STRIKETHROUGH | TABLES | TASK_LISTS */
   DEFAULT: 0x0001 | 0x0002 | 0x0004 | 0x0100 | 0x0200 | 0x0800,
-};
+});
+
+/**
+ * NodeType is a type of the markdown node.
+ */
+export const NodeType = Object.freeze({
+  QUOTE: 1,
+  UL: 2,
+  OL: 3,
+  LI: 4,
+  HR: 5,
+  CODE_BLOCK: 7,
+  HTML: 8,
+  P: 9,
+  TABLE: 10,
+  THEAD: 11,
+  TBODY: 12,
+  TR: 13,
+  TH: 14,
+  TD: 15,
+  H1: 21,
+  H2: 22,
+  H3: 23,
+  H4: 24,
+  H5: 25,
+  H6: 26,
+  EM: 30,
+  STRONG: 31,
+  A: 32,
+  IMG: 33,
+  CODE_SPAN: 34,
+  DEL: 35,
+  LATEXMATH: 36,
+  LATEXMATH_DISPLAY: 37,
+  WIKILINK: 38,
+  U: 39,
+});
+
+/**
+ * Validates the parse flags.
+ * @param {number | object} parseFlags
+ * @returns {number} validated parse flags
+ */
+function validateParseFlags(parseFlags) {
+  if (typeof parseFlags === "number") {
+    return parseFlags;
+  }
+  if (typeof parseFlags === "object" && parseFlags !== null) {
+    const keys = (Array.isArray(parseFlags)
+      ? parseFlags
+      : Object.entries(parseFlags).filter(([, v]) =>
+        !!v
+      ).map(([k]) => k)).filter((k) => k in ParseFlags);
+    return keys.reduce((acc, k) => acc | ParseFlags[k], 0);
+  }
+  return ParseFlags.DEFAULT;
+}
 
 /**
  * readMem returns a Uint8Array view of the wasm memory.
@@ -71,37 +127,46 @@ const allocMem = (data) => {
 };
 
 /**
- * Converts markdown to html.
- * @param {string | Uint8Array} input markdown input
- * @param {import("./md4w").Options} options parse options
- * @returns {string} html output
+ * Converts markdown to string.
  */
-export function mdToHtml(input, options = {}) {
+function mdToString(input, options = {}, renderer = 0) {
   const data = typeof input === "string" ? enc.encode(input) : input;
   if (!(data instanceof Uint8Array)) {
     throw new TypeError("input must be a string or Uint8Array");
   }
-  let estHtmlSize = Math.ceil(data.length * 1.3);
+  let estHtmlSize = Math.ceil(data.length * 1.5);
   let buffer = new Uint8Array(estHtmlSize);
   let len = 0;
   pull = (chunk) => {
     const chunkSize = chunk.length;
     if (len + chunkSize > buffer.length) {
-      const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.3));
+      const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.5));
       newBuffer.set(buffer.subarray(0, len));
       buffer = newBuffer;
     }
     buffer.set(chunk, len);
     len += chunkSize;
   };
-  wasm.render(
+  const ptrLen = wasm.render(
     allocMem(data),
     validateParseFlags(options.parseFlags),
     Math.max(estHtmlSize, 256),
     typeof highlighter === "function" ? 1 : 0,
+    renderer,
   );
+  pull(new Uint8Array(readMem(ptrLen)));
   pull = null;
   return dec.decode(buffer.subarray(0, len));
+}
+
+/**
+ * Converts markdown to html.
+ * @param {string | Uint8Array} input markdown input
+ * @param {import("./md4w").Options} options parse options
+ * @returns {string} html output
+ */
+export function mdToHtml(input, options = {}) {
+  return mdToString(input, options);
 }
 
 /**
@@ -114,12 +179,14 @@ export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
       pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
-      wasm.render(
+      const ptrLen = wasm.render(
         allocMem(typeof input === "string" ? enc.encode(input) : input),
         validateParseFlags(options.parseFlags),
         Math.max(1024, Number(options.bufferSize) || 1024),
         typeof highlighter === "function" ? 1 : 0,
+        0, // html
       );
+      pull(new Uint8Array(readMem(ptrLen)));
       controller.close();
       pull = null;
     },
@@ -127,23 +194,19 @@ export function mdToReadableHtml(input, options = {}) {
 }
 
 /**
- * Validates the parse flags.
- * @param {number | object} parseFlags
- * @returns {number} validated parse flags
+ * Converts markdown to json.
+ * @param {string | Uint8Array} input markdown input
+ * @param {import("./md4w").Options} options parse options
+ * @returns {import("./md4w").MDTree} json output
  */
-function validateParseFlags(parseFlags) {
-  if (typeof parseFlags === "number") {
-    return parseFlags;
+export function mdToJSON(input, options = {}) {
+  const output = mdToString(input, options, 2);
+  try {
+    const children = JSON.parse(output);
+    return { children };
+  } catch (error) {
+    throw new Error("Failed to parse JSON: " + error.message + "\n" + output);
   }
-  if (typeof parseFlags === "object" && parseFlags !== null) {
-    const keys = (Array.isArray(parseFlags)
-      ? parseFlags
-      : Object.entries(parseFlags).filter(([, v]) =>
-        !!v
-      ).map(([k]) => k)).filter((k) => k in ParseFlags);
-    return keys.reduce((acc, k) => acc | ParseFlags[k], 0);
-  }
-  return ParseFlags.DEFAULT;
 }
 
 /**
@@ -157,26 +220,27 @@ export function setCodeHighlighter(codeHighlighter) {
 
 /**
  * Initializes the wasm module.
- * @param {WebAssembly.Module | { render: CallableFunction }} wasmModule
+ * @param {WebAssembly.Module | { allocMem: CallableFunction }} wasmModule
  * @returns {void}
  */
 export function initWasm(wasmModule) {
+  const env = {
+    push: (ptrLen) => {
+      pull(readMem(ptrLen));
+    },
+    pushCodeBlock: (languagePtrLen, codePtrLen) => {
+      const language = readMem(languagePtrLen);
+      const code = readMem(codePtrLen);
+      const output = highlighter(dec.decode(language), dec.decode(code));
+      pull(enc.encode(output));
+    },
+  };
   if (wasmModule instanceof WebAssembly.Module) {
-    const instance = new WebAssembly.Instance(wasmModule, {
-      env: {
-        push: (ptrLen) => {
-          pull(readMem(ptrLen));
-        },
-        pushCodeBlock: (languagePtrLen, codePtrLen) => {
-          const language = readMem(languagePtrLen);
-          const code = readMem(codePtrLen);
-          const output = highlighter(dec.decode(language), dec.decode(code));
-          pull(enc.encode(output));
-        },
-      },
-    });
+    const instance = new WebAssembly.Instance(wasmModule, { env });
     wasm = instance.exports;
-  } else {
+  } else if (wasmModule.default && wasmModule.allocMem) {
+    // unwasm specific
+    wasmModule.default(env);
     wasm = wasmModule;
   }
 }

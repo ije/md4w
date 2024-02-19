@@ -30,7 +30,8 @@ if (!fs.readFile) {
 export async function init() {
   const wasmURL = new URL("md4w.wasm", import.meta.url);
   const wasmBytes = await fs.readFile(wasmURL);
-  initWasm(await WebAssembly.compile(wasmBytes));
+  const wasmModule = await WebAssembly.compile(wasmBytes);
+  initWasm(wasmModule);
 }
 
 export * from "./md4w.js";

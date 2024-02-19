@@ -71,6 +71,114 @@ export function mdToReadableHtml(
 ): ReadableStream<Uint8Array>;
 
 /**
+ * NodeType is a type of the markdown node.
+ */
+export enum NodeType {
+  QUOTE = 1,
+  UL = 2,
+  OL = 3,
+  LI = 4,
+  HR = 5,
+  CODE_BLOCK = 7,
+  HTML = 8,
+  P = 9,
+  TABLE = 10,
+  THEAD = 11,
+  TBODY = 12,
+  TR = 13,
+  TH = 14,
+  TD = 15,
+  H1 = 21,
+  H2 = 22,
+  H3 = 23,
+  H4 = 24,
+  H5 = 25,
+  H6 = 26,
+  EM = 30,
+  STRONG = 31,
+  A = 32,
+  IMG = 33,
+  CODE_SPAN = 34,
+  DEL = 35,
+  LATEXMATH = 36,
+  LATEXMATH_DISPLAY = 37,
+  WIKILINK = 38,
+  U = 39,
+}
+
+/**
+ * NodeProps is a type of the node properties.
+ */
+export type NodeProps<T> = Record<string, undefined> & T;
+
+/**
+ * MDNode is a node in the markdown tree.
+ */
+export type MDNode = {
+  readonly type: Exclude<
+    number,
+    | NodeType.CODE_BLOCK
+    | NodeType.OL
+    | NodeType.LI
+    | NodeType.TH
+    | NodeType.TD
+    | NodeType.HR
+    | NodeType.A
+    | NodeType.IMG
+    | NodeType.WIKILINK
+  >;
+  readonly props?: Record<string, undefined>;
+  readonly children?: readonly (string | MDNode)[];
+} | {
+  readonly type: NodeType.CODE_BLOCK;
+  readonly props?: NodeProps<{ lang: string }>;
+  readonly children: readonly string[];
+} | {
+  readonly type: NodeType.OL;
+  readonly props?: NodeProps<{ start: number }>;
+  readonly children: readonly (string | MDNode)[];
+} | {
+  readonly type: NodeType.LI;
+  readonly props?: NodeProps<{ isTask: boolean; done: boolean }>;
+  readonly children: readonly (string | MDNode)[];
+} | {
+  readonly type: NodeType.TH | NodeType.TD;
+  readonly props: NodeProps<{ align: "left" | "center" | "right" | "" }>;
+  readonly children: readonly (string | MDNode)[];
+} | {
+  readonly type: NodeType.HR;
+  readonly props: undefined;
+  readonly children: undefined;
+} | {
+  readonly type: NodeType.A;
+  readonly props: NodeProps<{ href: string; title?: string }>;
+  readonly children: readonly (string | MDNode)[];
+} | {
+  readonly type: NodeType.IMG;
+  readonly props: NodeProps<{ src: string; alt: string; title?: string }>;
+  readonly children: undefined;
+} | {
+  readonly type: NodeType.WIKILINK;
+  readonly props: NodeProps<{ target: string }>;
+  readonly children: readonly (string | MDNode)[];
+};
+
+/**
+ * MDTree is a parsed markdown tree.
+ */
+export interface MDTree {
+  readonly children: MDNode[];
+}
+
+/**
+ * Converts markdown to json.
+ * @param {string | Uint8Array} input markdown input
+ * @param {Options} options parse options
+ * @returns {MDTree} json output
+ */
+export function mdToJSON(input: string | Uint8Array, options?: Options): MDTree;
+
+/**
  * Code highlighter interface.
  */
 export interface CodeHighlighter {
