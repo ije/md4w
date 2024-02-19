@@ -610,7 +610,7 @@ const JOSNRenderer = struct {
                 w.writeJSONType(30 + typ);
                 w.writeJSONProps();
                 w.write("\"src\":\"");
-                w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 0);
+                w.writeJSONString(@as([*]const u8, @ptrCast(img.src.text))[0..img.src.size], 2);
                 w.write("\",\"alt\":"); // alt text will be added in the text callback
             },
             c.MD_SPAN_WIKILINK => {
