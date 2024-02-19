@@ -469,4 +469,16 @@ console.log('Hello, world!');
       },
     ],
   });
+
+  const specMd = await Deno.readFile(
+    new URL("commonmark-spec.md", import.meta.url),
+  );
+  const tree2 = mdToJSON(specMd);
+  assertEquals(Array.isArray(tree2.children), true);
+
+  const readmeMd = await Deno.readFile(
+    new URL("../README.md", import.meta.url),
+  );
+  const tree3 = mdToJSON(readmeMd);
+  assertEquals(Array.isArray(tree3.children), true);
 });
