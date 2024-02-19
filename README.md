@@ -194,7 +194,7 @@ the `NodeType` enum to get the human-readable node type.
 import { NodeType } from "md4w";
 
 console.log(NodeType.P); // 9
-console.log(NodeType.IMG); // 103
+console.log(NodeType.IMG); // 33
 
 if (node.type === NodeType.IMG) {
   console.log("This is an image node, `src` is", node.props.src);
