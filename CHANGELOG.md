@@ -3,6 +3,29 @@
 ## v0.1.x (current working branch)
 
 - Fix html/url escaping
+- Fix code block highlighting by lines
+- Add `mdToJSON` function to parse markdown to JSON (#4)
+  ```js
+  const traverse = (node) => {
+    // text node
+    if (typeof node === "string") {
+      console.log(node);
+      return;
+    }
+
+    // element type
+    console.log(node.type);
+
+    // element attributes (may be undefined)
+    console.log(node.props);
+
+    // element children (may be undefined)
+    node.children?.forEach(traverse);
+  };
+
+  const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
+  traverse(tree);
+  ```
 
 ## v0.1.0
 
