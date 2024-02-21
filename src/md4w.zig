@@ -462,7 +462,7 @@ const HTMLRenderer = struct {
             c.MD_TEXT_NULLCHAR => w.writeByte(0),
             c.MD_TEXT_BR => w.write(if (w.image_nesting_level == 0) "<br>\n" else " "),
             c.MD_TEXT_SOFTBR => w.writeByte(if (w.image_nesting_level == 0) '\n' else ' '),
-            // currently we don't translate entity to its UTF-8 equivalent
+            // todo: decode entities
             c.MD_TEXT_ENTITY, c.MD_TEXT_HTML => w.write(@as([*]const u8, @ptrCast(ptr))[0..len]),
             c.MD_TEXT_CODE => {
                 const code = @as([*]const u8, @ptrCast(ptr))[0..len];
@@ -692,6 +692,7 @@ const JOSNRenderer = struct {
                     w.write("\" \",");
                 }
             },
+            // todo: decode entities
             c.MD_TEXT_ENTITY, c.MD_TEXT_HTML => {
                 if (w.current_block == c.MD_BLOCK_HTML) {
                     w.writeByte('"');
@@ -734,6 +735,7 @@ export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highli
     const md = fromJS(ptr_len);
     defer allocator.free(md);
 
+    // todo: use global writer
     var writer = Writer.init(buffer_size, has_code_highlighter > 0);
     defer writer.deinit();
 
