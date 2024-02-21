@@ -1,4 +1,4 @@
-import * as wasm from "./md4w.wasm";
+import * as wasm from "./md4w-fast.wasm";
 import { initWasm } from "./md4w.js";
 
 export function init() {
