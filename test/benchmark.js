@@ -8,7 +8,7 @@ const markdownit = MarkdownIt();
 const md = await Deno.readFile(new URL("commonmark-spec.md", import.meta.url));
 const mdStr = new TextDecoder().decode(md);
 
-Deno.bench("md4w(dev)", () => {
+Deno.bench("md4w", () => {
   mdToHtml(md);
 });
 
