@@ -14,25 +14,10 @@ if (globalThis.Bun) {
 } else {
   // browser or deno
   fs.readFile = async (url) => {
-    const Deno = globalThis.Deno;
-    const browser = !Deno && globalThis.localStorage;
-    if (url.protocol === "file:" && Deno) {
+    if (url.protocol === "file:" && globalThis.Deno) {
       return Deno.readFile(url);
     }
-    if (browser) {
-      const cache = localStorage.getItem(url.href);
-      if (cache) {
-        return Uint8Array.from(atob(cache), (c) => c.charCodeAt(0));
-      }
-    }
-    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
-    if (browser) {
-      localStorage.setItem(
-        url.href,
-        btoa(String.fromCodePoint(...bytes)),
-      );
-    }
-    return bytes;
+    return fetch(url);
   };
 }
 
@@ -42,9 +27,11 @@ export async function init(wasmMode) {
     wasmMode = import.meta.url.startsWith("file:") ? "fast" : "small";
   }
   const wasmURL = new URL(`md4w-${wasmMode}.wasm`, import.meta.url);
-  const wasmBytes = await fs.readFile(wasmURL);
-  const wasmModule = await WebAssembly.compile(wasmBytes);
-  initWasm(wasmModule);
+  const wasmRes = await fs.readFile(wasmURL);
+  const wasmModule = wasmRes instanceof Response
+    ? WebAssembly.compileStreaming(wasmRes)
+    : WebAssembly.compile(wasmRes);
+  initWasm(await wasmModule);
 }
 
 export * from "./md4w.js";
