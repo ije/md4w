@@ -178,17 +178,19 @@ export function mdToHtml(input, options = {}) {
 export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
-      pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
-      const ptrLen = wasm.render(
-        allocMem(typeof input === "string" ? enc.encode(input) : input),
-        validateParseFlags(options.parseFlags),
-        Math.max(1024, Number(options.bufferSize) || 1024),
-        typeof highlighter === "function" ? 1 : 0,
-        0, // html
-      );
-      pull(new Uint8Array(readMem(ptrLen)));
-      controller.close();
-      pull = null;
+      queueMicrotask(() => {
+        pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
+        const ptrLen = wasm.render(
+          allocMem(typeof input === "string" ? enc.encode(input) : input),
+          validateParseFlags(options.parseFlags),
+          Math.max(1024, Number(options.bufferSize) || 1024),
+          typeof highlighter === "function" ? 1 : 0,
+          0, // html
+        );
+        pull(new Uint8Array(readMem(ptrLen)));
+        controller.close();
+        pull = null;
+      });
     },
   });
 }
