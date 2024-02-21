@@ -196,4 +196,4 @@ export function setCodeHighlighter(highlighter: CodeHighlighter): void;
  * Initializes the wasm module.
  * @returns {Promise<void>}
  */
-export function init(): Promise<void>;
+export function init(wasmMode?: "fast" | "small"): Promise<void>;

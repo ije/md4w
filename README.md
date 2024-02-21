@@ -6,9 +6,9 @@ JS runtimes.
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
   compliant to CommonMark 0.31, and partially supports GFM like task list,
   table, etc.
-- **Fast**: written in Zig & C, compiled to WebAssembly (it's about 2.5x faster
+- **Fast**: written in Zig & C, compiled to WebAssembly (it's about **2.5x** faster
   than markdown-it, see [benchmark](#benchmark)).
-- **Small**: `~25KB` gzipped.
+- **Small**: `~27KB` gzipped.
 - **Simple**: zero dependencies, easy to use.
 - **Streaming**: supports web streaming API for large markdown files.
 - **Universal**: works in any JavaScript runtime (Node.js, Deno, Bun, Browsers,
@@ -20,7 +20,7 @@ JS runtimes.
 // npm i md4w (Node.js, Bun, Cloudflare Workers, etc.)
 import { init, mdToHtml, mdToJSON, mdToReadableHtml } from "md4w";
 // or use the CDN url (Deno, Browsers)
-import { init, mdToHtml, mdToReadableHtml, mdToJSON } from "https://esm.sh/md4w";
+import { init, mdToHtml, mdToJSON, mdToReadableHtml } from "https://esm.sh/md4w";
 
 // waiting for md4w.wasm...
 await init();
@@ -36,6 +36,21 @@ const response = new Response(readable, {
 
 // markdown -> JSON
 const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
+```
+
+## Wasm Mode
+
+md4w provides two webassembly binary files:
+
+- `md4w-fast.wasm`: Faster but larger binary file. (270KB gzipped)
+- `md4w-small.wasm`: Smaller but slower binary file. (27KB gzipped)
+
+By default, md4w uses the `md4w-fast.wasm` binary from file system, uses the `md4w-small.wasm` binary from CDN. You can also specify the wasm file by adding the `wasmMode` option.
+
+```js
+import { init } from "md4w";
+
+init("fast"); // or "small"
 ```
 
 ## Parse Flags
@@ -112,7 +127,7 @@ md4w would not add colors to the code blocks by default, however, we provide a
 import { setCodeHighlighter } from "md4w";
 
 setCodeHighlighter((code, lang) => {
-  return `<pre><code class="language-js"><span style="color:#green">...<span></code></pre>`;
+  return `<pre><code class="language-${lang}">${hl(code)}</code></pre>`;
 });
 ```
 
@@ -145,11 +160,8 @@ const response = new Response(readable, {
 
 ### Buffer Size
 
-By default, md4w uses a buffer size of `1KB` for streaming, you can change it by
-adding the `bufferSize` option. The value is more higher, the JS calls in wasm
-module will be less, it will be more faster, but the memory usage will be more
-higher. You better to choose a suitable value for your case. For IO event like
-http server, maybe lower value is better.
+By default, md4w uses a buffer size of `4KB` for streaming, you can change it by
+adding the `bufferSize` option.
 
 ```js
 mdToReadableHtml(largeMarkdown, {
@@ -159,7 +171,7 @@ mdToReadableHtml(largeMarkdown, {
 
 ### Caveats
 
-The streaming API currently only uses the buffer for html output, you still need
+The streaming API currently only uses the buffer for output, you still need
 to load the whole markdown data into memory.
 
 ## Rendering to JSON
@@ -209,9 +221,8 @@ if (node.type === NodeType.IMG) {
 
 ## Development
 
-The renderer is written in [Zig](https://ziglang.org/), ensure you have it
-installed. Also the [wasm-opt](https://github.com/WebAssembly/binaryen) is
-required to optimize the generated WebAssembly binary.
+The renderer is written in [Zig](https://ziglang.org/), ensure you have it (0.11.0)
+installed.
 
 ```bash
 zig build && deno test -A

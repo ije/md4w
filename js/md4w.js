@@ -127,9 +127,13 @@ const allocMem = (data) => {
 };
 
 /**
- * Converts markdown to string.
+ * Render markdown to string.
+ * @param {string | Uint8Array} input markdown input
+ * @param {import("./md4w").Options} options parse options
+ * @param {number} renderer 0 for html, 2 for json
+ * @returns {string}
  */
-function mdToString(input, options = {}, renderer = 0) {
+export function renderToString(input, options = {}, renderer = 0) {
   const data = typeof input === "string" ? enc.encode(input) : input;
   if (!(data instanceof Uint8Array)) {
     throw new TypeError("input must be a string or Uint8Array");
@@ -150,7 +154,7 @@ function mdToString(input, options = {}, renderer = 0) {
   const ptrLen = wasm.render(
     allocMem(data),
     validateParseFlags(options.parseFlags),
-    Math.max(estHtmlSize, 256),
+    Math.max(estHtmlSize, 512),
     typeof highlighter === "function" ? 1 : 0,
     renderer,
   );
@@ -166,7 +170,7 @@ function mdToString(input, options = {}, renderer = 0) {
  * @returns {string} html output
  */
 export function mdToHtml(input, options = {}) {
-  return mdToString(input, options);
+  return renderToString(input, options);
 }
 
 /**
@@ -178,12 +182,12 @@ export function mdToHtml(input, options = {}) {
 export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
-      queueMicrotask(() => {
+      Promise.resolve().then(() => {
         pull = (chunk) => controller.enqueue(new Uint8Array(chunk));
         const ptrLen = wasm.render(
           allocMem(typeof input === "string" ? enc.encode(input) : input),
           validateParseFlags(options.parseFlags),
-          Math.max(1024, Number(options.bufferSize) || 1024),
+          Math.max(1024, Number(options.bufferSize) || 4 * 1024),
           typeof highlighter === "function" ? 1 : 0,
           0, // html
         );
@@ -202,13 +206,9 @@ export function mdToReadableHtml(input, options = {}) {
  * @returns {import("./md4w").MDTree} json output
  */
 export function mdToJSON(input, options = {}) {
-  const output = mdToString(input, options, 2);
-  try {
-    const children = JSON.parse(output);
-    return { children };
-  } catch (error) {
-    throw new Error("Failed to parse JSON: " + error.message + "\n" + output);
-  }
+  const output = renderToString(input, options, 2);
+  const children = JSON.parse(output);
+  return { children };
 }
 
 /**
