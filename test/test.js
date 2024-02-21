@@ -68,6 +68,18 @@ Deno.test("render to string", async (t) => {
     }
   });
 
+  await t.step("inline code", () => {
+    {
+      const html = mdToHtml("`number`");
+      assertEquals(html, "<p><code>number</code></p>\n");
+    }
+
+    {
+      const html = mdToHtml("`<number>`");
+      assertEquals(html, "<p><code>&lt;number&gt;</code></p>\n");
+    }
+  });
+
   // todo: add more tests
 });
 
@@ -133,6 +145,12 @@ Deno.test("using code hightlighter", async () => {
     );
   }
 
+  // inline code
+  {
+    const html = mdToHtml("`<number>`");
+    assertEquals(html, "<p><code>&lt;number&gt;</code></p>\n");
+  }
+
   // ignore highlighter for unknown language
   {
     const html = mdToHtml(
@@ -165,6 +183,8 @@ Stay _foolish_, stay **hungry**!
 
 console.log('Hello, world!');
 \`\`\`
+
+\`<number>\`
 
 ---
 
@@ -254,6 +274,15 @@ console.log('Hello, world!');
           "\n",
           "console.log('Hello, world!');",
           "\n",
+        ],
+      },
+      {
+        type: NodeType.P,
+        children: [
+          {
+            type: NodeType.CODE_SPAN,
+            children: ["&lt;number&gt;"],
+          },
         ],
       },
       {

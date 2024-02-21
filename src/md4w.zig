@@ -692,8 +692,7 @@ const JOSNRenderer = struct {
                     w.write("\" \",");
                 }
             },
-            // todo: decode entities
-            c.MD_TEXT_ENTITY, c.MD_TEXT_HTML => {
+            c.MD_TEXT_HTML => {
                 if (w.current_block == c.MD_BLOCK_HTML) {
                     w.writeByte('"');
                     w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], 0);
@@ -706,7 +705,7 @@ const JOSNRenderer = struct {
                 }
             },
             else => {
-                const escape: u2 = if (typ == c.MD_TEXT_CODE) 0 else 1;
+                const escape: u2 = if ((typ == c.MD_TEXT_CODE and w.current_block == c.MD_BLOCK_CODE) or typ == c.MD_TEXT_ENTITY) 0 else 1;
                 w.writeByte('"');
                 w.writeJSONString(@as([*]const u8, @ptrCast(ptr))[0..len], escape);
                 w.write("\",");
