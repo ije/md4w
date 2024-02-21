@@ -14,11 +14,6 @@ pub fn build(b: *std.Build) void {
     lib.rdynamic = true;
     b.installArtifact(lib);
 
-    const opt = b.addSystemCommand(&.{ "wasm-opt", "-Oz", "-o" });
-    const out_file = opt.addOutputFileArg("md4w-opt.wasm");
-    _ = opt.addFileArg(lib.getEmittedBin());
-    opt.step.dependOn(&lib.step);
-
-    const copy = b.addInstallFileWithDir(out_file, .prefix, "../js/md4w.wasm");
+    const copy = b.addInstallFileWithDir(lib.getEmittedBin(), .prefix, "../js/md4w.wasm");
     b.default_step.dependOn(&copy.step);
 }
