@@ -50,7 +50,7 @@ By default, md4w uses the `md4w-fast.wasm` binary from file system, uses the `md
 ```js
 import { init } from "md4w";
 
-init("fast"); // or "small"
+await init("fast"); // or "small"
 ```
 
 ## Parse Flags
