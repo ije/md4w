@@ -217,7 +217,7 @@ if (node.type === NodeType.IMG) {
 ```
 
 > All available node types are defined in the
-> [`NodeType` enum](./js/md4w.d.ts#L76).
+> [`NodeType`](./js/md4w.d.ts#L76) enum.
 
 ## Development
 
