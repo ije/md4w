@@ -25,11 +25,12 @@ if (globalThis.Bun) {
 }
 
 /** Initializes the wasm module. */
-export async function init(wasmMode) {
-  if (wasmMode !== "fast" && wasmMode !== "small") {
-    wasmMode = import.meta.url.startsWith("file:") ? "fast" : "small";
+export async function init(wasm) {
+  if (wasm === "fast" || wasm === "small" || wasm === undefined) {
+    const mode = wasm ?? (import.meta.url.startsWith("file:") ? "fast" : "small");
+    wasm = `md4w-${mode}.wasm`;
   }
-  const wasmURL = new URL(`md4w-${wasmMode}.wasm`, import.meta.url);
+  const wasmURL = new URL(wasm, import.meta.url);
   const wasmRes = await fs.readFile(wasmURL);
   const wasmModule = wasmRes instanceof Response
     ? WebAssembly.compileStreaming(wasmRes)

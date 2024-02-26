@@ -193,16 +193,7 @@ export interface CodeHighlighter {
 export function setCodeHighlighter(highlighter: CodeHighlighter): void;
 
 /**
- * Initializes the wasm module.
- * @param {WebAssembly.Module | { allocMem: CallableFunction }} wasmModule
- * @returns {void}
- */
-export function initWasm(
-  wasmModule: WebAssembly.Module | { allocMem: CallableFunction },
-): void;
-
-/**
  * Initializes the wasm module from fs/CDN.
  * @returns {Promise<void>}
  */
-export function init(wasmMode?: "fast" | "small"): Promise<void>;
+export function init(wasm?: "fast" | "small" | URL | string): Promise<void>;
