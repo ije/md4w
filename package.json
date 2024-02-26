@@ -1,7 +1,7 @@
 {
   "name": "md4w",
   "description": "A Markdown renderer written in Zig & C, compiled to WebAssymbly for all JS runtimes.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "module": "./js/index.js",
   "main": "./js/index.js",
