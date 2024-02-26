@@ -12,7 +12,7 @@ if (globalThis.Bun) {
   const p = import(u); // <- use variable to skip deno-lsp analyzing
   fs.readFile = async (url) => {
     const { readFile } = await p;
-    readFile(url.pathname);
+    return readFile(url.pathname);
   };
 } else {
   // browser or deno
