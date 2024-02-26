@@ -8,9 +8,12 @@ if (globalThis.Bun) {
     new Uint8Array(await Bun.file(url.pathname).arrayBuffer());
 } else if (globalThis.process && !globalThis.Deno) {
   // nodejs
-  const m = "node:fs/promises";
-  const { readFile } = await import(m);
-  fs.readFile = (url) => readFile(url.pathname);
+  const u = "node:fs/promises";
+  const p = import(u); // <- use variable to skip deno-lsp analyzing
+  fs.readFile = async (url) => {
+    const { readFile } = await p;
+    readFile(url.pathname);
+  };
 } else {
   // browser or deno
   fs.readFile = async (url) => {
