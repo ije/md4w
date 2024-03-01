@@ -24,18 +24,39 @@ if (globalThis.Bun) {
   };
 }
 
-/** Initializes the wasm module. */
+/**
+ * Initializes md4w wasm from fs/CDN.
+ * @param {"fast" | "small" | URL | Uint8Array | ArrayBuffer | Response | Promise<Response> | string | undefined} wasm The wasm module.
+ * @returns {Promise<void>}
+ */
 export async function init(wasm) {
-  if (wasm === "fast" || wasm === "small" || wasm === undefined) {
-    const mode = wasm ?? (import.meta.url.startsWith("file:") ? "fast" : "small");
+  if (wasm === "fast" || wasm === "small" || !wasm) {
+    const mode = wasm ??
+      (import.meta.url.startsWith("file:") ? "fast" : "small");
     wasm = `md4w-${mode}.wasm`;
   }
-  const wasmURL = new URL(wasm, import.meta.url);
-  const wasmRes = await fs.readFile(wasmURL);
-  const wasmModule = wasmRes instanceof Response
+  if (wasm instanceof Promise) {
+    wasm = await wasm;
+  }
+  let wasmRes;
+  if (typeof wasm === "string" || wasm instanceof URL) {
+    wasmRes = await fs.readFile(new URL(wasm, import.meta.url));
+  } else {
+    wasmRes = wasm;
+  }
+  const compiling = wasmRes instanceof Response
     ? WebAssembly.compileStreaming(wasmRes)
     : WebAssembly.compile(wasmRes);
-  initWasm(await wasmModule);
+  initWasm(await compiling);
+}
+
+/**
+ * Initializes md4w wasm with a wasm module.
+ * @param {WebAssembly.Module} wasmModule The wasm module.
+ * @returns {void}
+ */
+export function initSync(wasmModule) {
+  initWasm(wasmModule);
 }
 
 export * from "./md4w.js";

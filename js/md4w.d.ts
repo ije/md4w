@@ -193,7 +193,17 @@ export interface CodeHighlighter {
 export function setCodeHighlighter(highlighter: CodeHighlighter): void;
 
 /**
- * Initializes the wasm module from fs/CDN.
+ * Initializes md4w wasm from fs/CDN.
+ * @param {"fast" | "small" | URL | Uint8Array | ArrayBuffer | Response | Promise<Response> | string | undefined} wasm The wasm module.
  * @returns {Promise<void>}
  */
-export function init(wasm?: "fast" | "small" | URL | string): Promise<void>;
+export async function init(
+  wasm?: "fast" | "small" | URL | Uint8Array | ArrayBuffer | Response | Promise<Response> | string,
+): Promise<void>;
+
+/**
+ * Initializes md4w wasm with a wasm module.
+ * @param {WebAssembly.Module} wasmModule The wasm module.
+ * @returns {void}
+ */
+export function initSync(wasmModule: WebAssembly.Module): void;
