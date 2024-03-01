@@ -53,6 +53,15 @@ import { init } from "md4w";
 await init("fast"); // or "small"
 ```
 
+If you are using a **bundler** like vite, you need to configure the `wasm` input manually.
+
+```js
+import { init } from "md4w";
+import wasmUrl from "md4w/js/md4w-fast.wasm?url";
+
+await init(wasmUrl);
+```
+
 ## Parse Flags
 
 By default, md4w uses the following parse flags:
