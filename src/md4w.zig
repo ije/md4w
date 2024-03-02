@@ -5,6 +5,12 @@ const c = @cImport({
 
 const allocator = std.heap.wasm_allocator;
 
+// js functions
+const js = struct {
+    pub extern fn emitChunk(ptr_len: u64) void;
+    pub extern fn emitCodeBlock(language_ptr_len: u64, code_ptr_len: u64) void;
+};
+
 /// slugCharMap is a map of ASCII characters to their corresponding slug character.
 /// copied from https://github.com/rsms/markdown-wasm/blob/0d99d1151ff4d929a8ac8f3a191bfec54a10a869/src/fmt_html.c#L120C1-L138C3
 const slugCharMap = [256]u8{
@@ -57,7 +63,7 @@ const Writer = struct {
         }
     }
     pub fn flush(self: *Writer) void {
-        push(toJS(self.buf[0..self.len]));
+        js.emitChunk(toPtrLen(self.buf[0..self.len]));
         self.len = 0;
     }
     pub fn writeByte(self: *Writer, byte: u8) void {
@@ -72,7 +78,7 @@ const Writer = struct {
             if (self.len > 0) {
                 self.flush();
             }
-            push(toJS(chunk));
+            js.emitChunk(toPtrLen(chunk));
             return;
         }
         if (self.len + chunk.len > self.buf.len) {
@@ -321,7 +327,7 @@ const HTMLRenderer = struct {
                         // flush the buffer if not empty
                         w.flush();
                     }
-                    pushCodeBlock(toJS(lang), toJS(w.code[0..w.code_len]));
+                    js.emitCodeBlock(toPtrLen(lang), toPtrLen(w.code[0..w.code_len]));
                     w.code_len = 0;
                 }
                 w.code_no_lang = false;
@@ -724,14 +730,9 @@ export fn allocMem(length: u32) u64 {
     }));
 }
 
-/// allow the host to free memory
-export fn freeMem(ptr_len: u64) void {
-    allocator.free(fromJS(ptr_len));
-}
-
 /// the main function to render markdown to html
 export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highlighter: usize, output_type: usize) u64 {
-    const md = fromJS(ptr_len);
+    const md = toSlice(ptr_len);
     defer allocator.free(md);
 
     // todo: use global writer
@@ -776,17 +777,17 @@ export fn render(ptr_len: u64, flags: usize, buffer_size: usize, has_code_highli
     }
 
     // return remaining buffer
-    return toJS(writer.buf[0..writer.len]);
+    return toPtrLen(writer.buf[0..writer.len]);
 }
 
 /// get a slice from the pointer and length
-fn fromJS(ptr_len: u64) []const u8 {
+fn toSlice(ptr_len: u64) []const u8 {
     const s = @as([2]u32, @bitCast(ptr_len));
     return @as([*]u8, @ptrFromInt(s[0]))[0..s[1]];
 }
 
 /// convert a slice to its pointer and length
-fn toJS(data: []const u8) u64 {
+fn toPtrLen(data: []const u8) u64 {
     return @as(u64, @bitCast([2]u32{
         @as(u32, @intFromPtr(data.ptr)),
         data.len,
@@ -795,7 +796,3 @@ fn toJS(data: []const u8) u64 {
 
 // add libc compatibility layer for wasm target
 usingnamespace @import("libc.zig");
-
-// js functions
-pub extern fn push(ptr_len: u64) void;
-pub extern fn pushCodeBlock(language_ptr_len: u64, code_ptr_len: u64) void;
