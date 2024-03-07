@@ -8,7 +8,7 @@ JS runtimes.
   table, etc.
 - **Fast**: written in Zig & C, compiled to WebAssembly (it's about **2.5x** faster
   than markdown-it, see [benchmark](#benchmark)).
-- **Small**: `~27KB` gzipped.
+- **Small**: `~28KB` gzipped.
 - **Simple**: zero dependencies, easy to use.
 - **Streaming**: supports web streaming API for large markdown files.
 - **Universal**: works in any JavaScript runtime (Node.js, Deno, Bun, Browsers,
