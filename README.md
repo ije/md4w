@@ -43,7 +43,7 @@ const tree = mdToJSON("Stay _foolish_, stay **hungry**!");
 md4w provides two webassembly binary files:
 
 - `md4w-fast.wasm`: Faster but larger binary file. (**270KB** gzipped)
-- `md4w-small.wasm`: Tiny but slower binary file. (**27KB** gzipped)
+- `md4w-small.wasm`: Tiny but slower binary file. (**28KB** gzipped)
 
 By default, md4w uses the `md4w-fast.wasm` binary from file system, uses the `md4w-small.wasm` binary from CDN. You can also specify the wasm file by adding the `wasmMode` option.
 
