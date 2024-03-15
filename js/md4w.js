@@ -2,7 +2,7 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 let wasm;
-let write;
+let emit;
 let highlighter;
 
 /**
@@ -141,7 +141,7 @@ export function renderToString(input, options = {}, renderer = 0) {
   let estHtmlSize = Math.ceil(data.length * 1.5);
   let buffer = new Uint8Array(estHtmlSize);
   let len = 0;
-  write = (chunk) => {
+  emit = (chunk) => {
     const chunkSize = chunk.length;
     if (len + chunkSize > buffer.length) {
       const newBuffer = new Uint8Array(Math.ceil((len + chunkSize) * 1.5));
@@ -158,8 +158,8 @@ export function renderToString(input, options = {}, renderer = 0) {
     typeof highlighter === "function" ? 1 : 0,
     renderer,
   );
-  write(new Uint8Array(readMem(ptrLen)));
-  write = null;
+  emit(new Uint8Array(readMem(ptrLen)));
+  emit = null;
   return dec.decode(buffer.subarray(0, len));
 }
 
@@ -183,7 +183,7 @@ export function mdToReadableHtml(input, options = {}) {
   return new ReadableStream({
     start(controller) {
       Promise.resolve().then(() => {
-        write = (chunk) => controller.enqueue(new Uint8Array(chunk));
+        emit = (chunk) => controller.enqueue(new Uint8Array(chunk));
         const ptrLen = wasm.render(
           allocMem(typeof input === "string" ? enc.encode(input) : input),
           validateParseFlags(options.parseFlags),
@@ -191,9 +191,9 @@ export function mdToReadableHtml(input, options = {}) {
           typeof highlighter === "function" ? 1 : 0,
           0, // html
         );
-        write(new Uint8Array(readMem(ptrLen)));
+        emit(new Uint8Array(readMem(ptrLen)));
+        emit = null;
         controller.close();
-        write = null;
       });
     },
   });
@@ -228,13 +228,13 @@ export function setCodeHighlighter(codeHighlighter) {
 export function initWasm(wasmModule) {
   const env = {
     emitChunk: (ptrLen) => {
-      write(readMem(ptrLen));
+      emit(readMem(ptrLen));
     },
     emitCodeBlock: (languagePtrLen, codePtrLen) => {
       const language = readMem(languagePtrLen);
       const code = readMem(codePtrLen);
       const output = highlighter(dec.decode(language), dec.decode(code));
-      write(enc.encode(output));
+      emit(enc.encode(output));
     },
   };
   if (wasmModule instanceof WebAssembly.Module) {
