@@ -1,7 +1,6 @@
 # md4w
 
-A **Markdown** renderer written in Zig & C, compiled to **WebAssymbly** for all
-JS runtimes.
+A **Markdown** renderer written in Zig & C, compiled to **WebAssymbly**.
 
 - **Compliance**: powered by [md4c](https://github.com/mity/md4c) that is fully
   compliant to CommonMark 0.31, and partially supports GFM like task list,
@@ -10,7 +9,7 @@ JS runtimes.
   than markdown-it, see [benchmark](#benchmark)).
 - **Small**: `~28KB` gzipped.
 - **Simple**: zero dependencies, easy to use.
-- **Streaming**: supports web streaming API for large markdown files.
+- **Streaming**: supports web streaming API for reducing memory usage.
 - **Universal**: works in any JavaScript runtime (Node.js, Deno, Bun, Browsers,
   Cloudflare Workers, etc).
 
@@ -149,7 +148,7 @@ setCodeHighlighter((code, lang) => {
 
 ## Web Streaming API
 
-md4w supports web streaming API for large markdown files, this also is useful
+md4w provides the web streaming API, that is useful
 for a http server to stream the outputed html.
 
 ```js
