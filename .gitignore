@@ -3,3 +3,4 @@
 zig-out
 *.wasm
 *.zip
+node_modules

@@ -27,8 +27,19 @@ jobs:
         with:
           deno-version: v1.x
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+          run_install: false
+
       - name: Run `zig build`
-        run: zig build
+        run: cd packages/core && zig build
 
       - name: Run `deno test`
         run: deno test -A
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Build webcomponent
+        run: cd packages/webcomponent && pnpm build

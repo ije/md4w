@@ -1,29 +1,17 @@
 {
-  "name": "md4w",
-  "description": "A Markdown renderer written in Zig & C, compiled to WebAssymbly for all JS runtimes.",
-  "version": "0.2.6",
+  "name": "md4w-monorepo",
+  "version": "1.0.0",
+  "description": "",
   "type": "module",
-  "module": "./js/index.js",
-  "main": "./js/index.js",
-  "types": "./js/md4w.d.ts",
-  "exports": {
-    ".": {
-      "unwasm": "./js/unwasm.js",
-      "workerd": "./js/workerd.js",
-      "import": "./js/index.js",
-      "types": "./js/md4w.d.ts"
-    }
+  "license": "MIT",
+  "packageManager": "pnpm@9.5.0",
+  "engines": {
+    "pnpm": "^9.0.0"
   },
-  "scripts": {
-    "prepublishOnly": "zig build"
-  },
-  "files": [
-    "js/",
-    "README.md"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ije/md4w"
   },
-  "license": "MIT"
+  "scripts": {},
+  "devDependencies": {}
 }
