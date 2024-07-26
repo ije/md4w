@@ -1,6 +1,10 @@
 {
   "name": "md4wc",
-  "repository": "https://github.com/karesztrk/md4wc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ije/md4w.git",
+    "directory": "packages/webcomponent"
+  },
   "version": "1.0.1",
   "description": "",
   "type": "module",

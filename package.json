@@ -10,7 +10,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ije/md4w"
+    "url": "https://github.com/ije/md4w",
+    "directory": "packages/core"
   },
   "scripts": {},
   "devDependencies": {}
